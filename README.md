@@ -1,4 +1,4 @@
- What We Built
+ What I Built
 
   NoteCode is a terminal-aesthetic markdown note-taking app. Here's a breakdown of every layer:
 
