@@ -68,7 +68,7 @@ A terminal-inspired note-taking app powered by Markdown.
 > blockquote     → indented quote block
 - item           → bullet list
 1. item          → numbered list
-```code```         → syntax-highlighted code block
+\`\`\`code\`\`\`         → syntax-highlighted code block
 [text](url)      → clickable link
 
 `
