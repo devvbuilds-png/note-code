@@ -60,7 +60,7 @@ PS -
   })
 
   const [search, setSearch] = useState('')
-  const [mode, setMode] = useState('edit') // 'edit' | 'split' | 'read'
+  const [mode, setMode] = useState('split') // 'edit' | 'split' | 'read'
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   useEffect(() => {
