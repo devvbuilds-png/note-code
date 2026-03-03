@@ -334,6 +334,7 @@ input, textarea {
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
 }
 
 /* ── Editor pane ────────────────────────────────── */
@@ -354,6 +355,7 @@ input, textarea {
   border-bottom: 1px solid var(--border);
   background: var(--bg-surface);
   flex-shrink: 0;
+  gap: 2px;
 }
 
 .editor-label {
@@ -453,6 +455,40 @@ input, textarea {
   flex: 1;
   overflow: hidden;
   background: var(--bg-base);
+}
+
+.preview-pane.overlay {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 420px;
+  max-width: 60%;
+  flex: none;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.45);
+  z-index: 50;
+  animation: slideIn 0.18s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.preview-close-btn {
+  padding: 1px 7px;
+  font-size: 14px;
+  color: var(--text-muted);
+  border-radius: var(--radius);
+  margin-right: 6px;
+  transition: color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.preview-close-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .preview-content {

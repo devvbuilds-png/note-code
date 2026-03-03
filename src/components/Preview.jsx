@@ -55,15 +55,20 @@ renderer.codespan = function({ text }) {
   return `<code class="inline-code">${text}</code>`
 }
 
-export default function Preview({ content }) {
+export default function Preview({ content, overlay, onClose }) {
   const html = useMemo(() => {
     if (!content.trim()) return ''
     return marked(content, { renderer })
   }, [content])
 
   return (
-    <div className="preview-pane">
+    <div className={`preview-pane${overlay ? ' overlay' : ''}`}>
       <div className="preview-title-bar">
+        {overlay && (
+          <button className="preview-close-btn" onClick={onClose} title="Close preview">
+            &#8594;
+          </button>
+        )}
         <span className="editor-label">reader</span>
       </div>
       <div

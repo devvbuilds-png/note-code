@@ -79,7 +79,7 @@ print(list(fibonacci(10)))
   })
 
   const [search, setSearch] = useState('')
-  const [mode, setMode] = useState('edit') // 'edit' | 'read'
+  const [mode, setMode] = useState('edit') // 'edit' | 'split' | 'read'
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   useEffect(() => {
@@ -122,6 +122,12 @@ print(list(fibonacci(10)))
         e.preventDefault()
         newNote()
       }
+      if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const active = document.activeElement
+        if (!active?.isContentEditable && active?.tagName !== 'INPUT' && active?.tagName !== 'TEXTAREA') {
+          setMode(m => m === 'read' ? 'edit' : 'read')
+        }
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -152,12 +158,17 @@ print(list(fibonacci(10)))
             <button
               className={`mode-btn${mode === 'edit' ? ' active' : ''}`}
               onClick={() => setMode('edit')}
-              title="Edit mode"
+              title="Editor only"
             >[ ]</button>
+            <button
+              className={`mode-btn${mode === 'split' ? ' active' : ''}`}
+              onClick={() => setMode('split')}
+              title="Editor + Preview"
+            >[|]</button>
             <button
               className={`mode-btn${mode === 'read' ? ' active' : ''}`}
               onClick={() => setMode('read')}
-              title="Reader mode"
+              title="Reader only  (R)"
             >[▶]</button>
           </div>
           <button className="icon-btn new-note-btn" onClick={newNote} title="New note (Ctrl+N)">
@@ -182,11 +193,18 @@ print(list(fibonacci(10)))
         <main className="main-area">
           {activeNote ? (
             <>
-              {mode === 'edit' && (
+              {(mode === 'edit' || mode === 'split') && (
                 <Editor
                   note={activeNote}
                   onChange={(content) => updateNote(activeNote.id, { content })}
                   onTitleChange={(title) => updateNote(activeNote.id, { title })}
+                />
+              )}
+              {mode === 'split' && (
+                <Preview
+                  content={activeNote.content}
+                  overlay
+                  onClose={() => setMode('edit')}
                 />
               )}
               {mode === 'read' && (
