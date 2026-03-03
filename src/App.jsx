@@ -49,6 +49,7 @@ A terminal-inspired note-taking app powered by Markdown.
 
 > Toggle from the top right corner 
 
+
 ## Features
 
   • Live Markdown preview
@@ -57,18 +58,18 @@ A terminal-inspired note-taking app powered by Markdown.
   • Stored locally in your browser
 
 
-##   Markdown Cheatsheet
+## Markdown Cheatsheet
 
-  **bold**         → bold
-  *italic*         → italic
-  `inline code`    → inline code
-  # Heading → large heading
-  ## Heading 2 → medium heading
-  > blockquote     → indented quote block
-  - item           → bullet list
-  1. item          → numbered list
+**bold** → bold
+*italic* → italic
+\`inline code\` → inline code
+# Heading → large heading
+## Heading 2 → medium heading
+> blockquote     → indented quote block
+- item           → bullet list
+1. item          → numbered list
 ```code```         → syntax-highlighted code block
-  [text](url)      → clickable link
+[text](url)      → clickable link
 
 `
     return [welcome]
