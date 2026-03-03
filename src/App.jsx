@@ -48,27 +48,8 @@ A terminal-inspired note-taking app powered by Markdown.
 - **Search** across all notes
 - Stored locally in your browser
 
-## Example Code
-
-\`\`\`js
-function greet(name) {
-  return \`Hello, \${name}!\`
-}
-
-console.log(greet('world'))
-\`\`\`
-
-\`\`\`python
-def fibonacci(n):
-    a, b = 0, 1
-    for _ in range(n):
-        yield a
-        a, b = b, a + b
-
-print(list(fibonacci(10)))
-\`\`\`
-
-> Start typing in the editor on the right to begin.
+PS - 
+\`\`\` - use for code blocks
 `
     return [welcome]
   })
