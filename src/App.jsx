@@ -41,15 +41,35 @@ export default function App() {
 
 A terminal-inspired note-taking app powered by Markdown.
 
+## Three Modes
+
+- Editor  — write and edit your notes in raw Markdown
+- Editor + Reader — write while reading your notes in clean, formatted view.
+- Reader - Read and reflect on your notes.
+
+> Toggle from the top right corner 
+
 ## Features
 
-- **Markdown** rendering with live preview
-- **Syntax highlighting** for code blocks
-- **Search** across all notes
-- Stored locally in your browser
+  • Live Markdown preview
+  • Syntax highlighting for code blocks
+  • Search across all notes
+  • Stored locally in your browser
 
-PS - 
-\`\`\` - use for code blocks
+
+##   Markdown Cheatsheet
+
+  **bold**         → bold
+  *italic*         → italic
+  `inline code`    → inline code
+  # Heading → large heading
+  ## Heading 2 → medium heading
+  > blockquote     → indented quote block
+  - item           → bullet list
+  1. item          → numbered list
+```code```         → syntax-highlighted code block
+  [text](url)      → clickable link
+
 `
     return [welcome]
   })
