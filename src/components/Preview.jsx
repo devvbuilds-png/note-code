@@ -41,6 +41,21 @@ hljs.registerLanguage('yaml', yaml)
 hljs.registerLanguage('yml', yaml)
 hljs.registerLanguage('plaintext', plaintext)
 
+marked.use({
+  extensions: [{
+    name: 'checkbox',
+    level: 'inline',
+    start(src) { return src.indexOf('[') },
+    tokenizer(src) {
+      const match = src.match(/^\[([ x])\]/)
+      if (match) return { type: 'checkbox', raw: match[0], checked: match[1] === 'x' }
+    },
+    renderer(token) {
+      return `<input type="checkbox" class="task-checkbox"${token.checked ? ' checked' : ''} disabled />`
+    }
+  }]
+})
+
 marked.setOptions({ breaks: true, gfm: true })
 
 const renderer = new marked.Renderer()

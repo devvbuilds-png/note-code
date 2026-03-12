@@ -650,6 +650,40 @@ input, textarea {
 .hljs-params { color: #abb2bf; }
 .hljs-property { color: #e06c75; }
 
+/* ── Task checkboxes ────────────────────────────── */
+.task-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #4a5568;
+  border-radius: 2px;
+  background: transparent;
+  cursor: default;
+  vertical-align: -2px;
+  margin-right: 5px;
+  flex-shrink: 0;
+  position: relative;
+  font-size: 0;
+}
+.task-checkbox:checked {
+  border-color: #5af78e;
+  background: transparent;
+}
+.task-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: -1px;
+  width: 4px;
+  height: 8px;
+  border: 1.5px solid #5af78e;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
 /* ── Empty state ────────────────────────────────── */
 .empty-state {
   flex: 1;

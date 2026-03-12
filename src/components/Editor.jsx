@@ -126,6 +126,16 @@ function toggleWrap(view, before, after) {
   view.focus()
 }
 
+function insertCheckbox(view) {
+  const state = view.state
+  const changes = []
+  for (const range of state.selection.ranges) {
+    changes.push({ from: range.from, to: range.to, insert: '[ ] ' })
+  }
+  if (changes.length) view.dispatch({ changes })
+  view.focus()
+}
+
 function insertBlock(view, type) {
   const state = view.state
   const changes = []
@@ -221,6 +231,8 @@ export default function Editor({ note, onChange, onTitleChange }) {
         <span className="toolbar-sep" />
         <button className="toolbar-btn" title="Code block" onClick={() => getView() && insertBlock(getView(), 'code')}>&#123;&#125;</button>
         <button className="toolbar-btn" title="Blockquote" onClick={() => getView() && insertBlock(getView(), 'quote')}>&gt;</button>
+        <span className="toolbar-sep" />
+        <button className="toolbar-btn" title="Checkbox" onClick={() => getView() && insertCheckbox(getView())}>☐</button>
       </div>
 
       <div className="cm-wrapper" ref={editorRef} />
