@@ -203,6 +203,16 @@ export default function Editor({ note, onChange, onTitleChange }) {
     }
   }, [note.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sync external content changes (e.g. checkbox toggle from Preview)
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    const current = view.state.doc.toString()
+    if (current !== note.content) {
+      view.dispatch({ changes: { from: 0, to: current.length, insert: note.content } })
+    }
+  }, [note.content])
+
   const getView = useCallback(() => viewRef.current, [])
 
   return (

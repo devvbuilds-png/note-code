@@ -41,6 +41,9 @@ hljs.registerLanguage('yaml', yaml)
 hljs.registerLanguage('yml', yaml)
 hljs.registerLanguage('plaintext', plaintext)
 
+// Module-level counter reset before each render so checkboxes get stable indices
+let _cbIdx = 0
+
 marked.use({
   extensions: [{
     name: 'checkbox',
@@ -51,7 +54,8 @@ marked.use({
       if (match) return { type: 'checkbox', raw: match[0], checked: match[1] === 'x' }
     },
     renderer(token) {
-      return `<input type="checkbox" class="task-checkbox"${token.checked ? ' checked' : ''} disabled />`
+      const idx = _cbIdx++
+      return `<input type="checkbox" class="task-checkbox" data-idx="${idx}"${token.checked ? ' checked' : ''} />`
     }
   }]
 })
@@ -70,11 +74,19 @@ renderer.codespan = function({ text }) {
   return `<code class="inline-code">${text}</code>`
 }
 
-export default function Preview({ content, overlay, onClose }) {
+export default function Preview({ content, overlay, onClose, onCheckboxToggle }) {
   const html = useMemo(() => {
     if (!content.trim()) return ''
+    _cbIdx = 0
     return marked(content, { renderer })
   }, [content])
+
+  function handleContentClick(e) {
+    if (e.target.classList.contains('task-checkbox') && onCheckboxToggle) {
+      const idx = parseInt(e.target.dataset.idx, 10)
+      onCheckboxToggle(idx)
+    }
+  }
 
   return (
     <div className={`preview-pane${overlay ? ' overlay' : ''}`}>
@@ -88,6 +100,7 @@ export default function Preview({ content, overlay, onClose }) {
       </div>
       <div
         className="preview-content markdown-body"
+        onClick={handleContentClick}
         dangerouslySetInnerHTML={{ __html: html || '<p class="preview-empty">Nothing to preview yet.</p>' }}
       />
     </div>

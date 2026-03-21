@@ -5,6 +5,7 @@ import Preview from './components/Preview'
 import './App.css'
 
 const STORAGE_KEY = 'notecode_notes'
+const FOLDERS_KEY = 'notecode_folders'
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
@@ -15,6 +16,7 @@ function createNote(title = 'Untitled') {
     id: generateId(),
     title,
     content: '',
+    folder: null,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   }
@@ -32,6 +34,59 @@ function saveNotes(notes) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(notes))
 }
 
+function loadFolders() {
+  try {
+    const raw = localStorage.getItem(FOLDERS_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
+function saveFolders(folders) {
+  localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders))
+}
+
+const CHECKBOX_RE = /^\[([ x])\]/
+
+function toggleAndReorderCheckbox(content, idx) {
+  const lines = content.split('\n')
+
+  // Find the line at checkbox index idx
+  let count = 0
+  let targetLine = -1
+  for (let i = 0; i < lines.length; i++) {
+    if (CHECKBOX_RE.test(lines[i])) {
+      if (count === idx) { targetLine = i; break }
+      count++
+    }
+  }
+  if (targetLine === -1) return content
+
+  // Toggle
+  const wasChecked = lines[targetLine].startsWith('[x]')
+  lines[targetLine] = wasChecked
+    ? lines[targetLine].replace('[x]', '[ ]')
+    : lines[targetLine].replace('[ ]', '[x]')
+
+  // Find the consecutive checkbox block
+  let start = targetLine
+  let end = targetLine
+  while (start > 0 && CHECKBOX_RE.test(lines[start - 1])) start--
+  while (end < lines.length - 1 && CHECKBOX_RE.test(lines[end + 1])) end++
+
+  // Sort block: checked items float to top
+  const block = lines.slice(start, end + 1)
+  block.sort((a, b) => {
+    const aChecked = a.startsWith('[x]')
+    const bChecked = b.startsWith('[x]')
+    if (aChecked === bChecked) return 0
+    return aChecked ? -1 : 1
+  })
+  lines.splice(start, end - start + 1, ...block)
+
+  return lines.join('\n')
+}
+
 export default function App() {
   const [notes, setNotes] = useState(() => {
     const saved = loadNotes()
@@ -47,7 +102,7 @@ A terminal-inspired note-taking app powered by Markdown.
 - Editor + Reader — write while reading your notes in clean, formatted view.
 - Reader - Read and reflect on your notes.
 
-> Toggle from the top right corner 
+> Toggle from the top right corner
 
 
 ## Features
@@ -75,6 +130,8 @@ A terminal-inspired note-taking app powered by Markdown.
     return [welcome]
   })
 
+  const [folders, setFolders] = useState(loadFolders)
+
   const [activeId, setActiveId] = useState(() => {
     const saved = loadNotes()
     return saved.length > 0 ? saved[0].id : null
@@ -90,9 +147,8 @@ A terminal-inspired note-taking app powered by Markdown.
     }
   }, [notes, activeId])
 
-  useEffect(() => {
-    saveNotes(notes)
-  }, [notes])
+  useEffect(() => { saveNotes(notes) }, [notes])
+  useEffect(() => { saveFolders(folders) }, [folders])
 
   const activeNote = notes.find(n => n.id === activeId) ?? null
 
@@ -116,6 +172,32 @@ A terminal-inspired note-taking app powered by Markdown.
     setNotes(prev => prev.map(n =>
       n.id === id ? { ...n, ...changes, updatedAt: Date.now() } : n
     ))
+  }, [])
+
+  const handleCheckboxToggle = useCallback((idx) => {
+    if (!activeId) return
+    setNotes(prev => prev.map(n => {
+      if (n.id !== activeId) return n
+      const newContent = toggleAndReorderCheckbox(n.content, idx)
+      return { ...n, content: newContent, updatedAt: Date.now() }
+    }))
+  }, [activeId])
+
+  const createFolder = useCallback((name) => {
+    setFolders(prev => [...prev, { id: generateId(), name }])
+  }, [])
+
+  const deleteFolder = useCallback((id) => {
+    setFolders(prev => prev.filter(f => f.id !== id))
+    setNotes(prev => prev.map(n => n.folder === id ? { ...n, folder: null } : n))
+  }, [])
+
+  const renameFolder = useCallback((id, name) => {
+    setFolders(prev => prev.map(f => f.id === id ? { ...f, name } : f))
+  }, [])
+
+  const moveNoteToFolder = useCallback((noteId, folderId) => {
+    setNotes(prev => prev.map(n => n.id === noteId ? { ...n, folder: folderId } : n))
   }, [])
 
   useEffect(() => {
@@ -189,6 +271,11 @@ A terminal-inspired note-taking app powered by Markdown.
             onSelect={setActiveId}
             onNew={newNote}
             onDelete={deleteNote}
+            folders={folders}
+            onFolderCreate={createFolder}
+            onFolderDelete={deleteFolder}
+            onFolderRename={renameFolder}
+            onNoteFolder={moveNoteToFolder}
           />
         )}
 
@@ -207,10 +294,14 @@ A terminal-inspired note-taking app powered by Markdown.
                   content={activeNote.content}
                   overlay
                   onClose={() => setMode('edit')}
+                  onCheckboxToggle={handleCheckboxToggle}
                 />
               )}
               {mode === 'read' && (
-                <Preview content={activeNote.content} />
+                <Preview
+                  content={activeNote.content}
+                  onCheckboxToggle={handleCheckboxToggle}
+                />
               )}
             </>
           ) : (

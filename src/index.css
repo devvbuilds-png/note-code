@@ -239,9 +239,6 @@ input, textarea {
 .note-item:hover {
   background: var(--bg-hover);
 }
-.note-item:hover .note-delete-btn {
-  opacity: 1;
-}
 .note-item.active {
   background: var(--bg-active);
   border-color: var(--border);
@@ -274,16 +271,53 @@ input, textarea {
   flex: 1;
 }
 
-.note-delete-btn {
+.note-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.note-item:hover .note-item-actions { opacity: 1; }
+
+.note-folder-btn {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: color 0.15s, background 0.15s;
+}
+.note-folder-btn:hover,
+.note-folder-btn.open { color: var(--text-accent); }
+
+.note-delete-btn {
   font-size: 10px;
   color: var(--text-muted);
   padding: 2px 4px;
   border-radius: 2px;
-  flex-shrink: 0;
-  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 .note-delete-btn:hover { color: var(--text-red); background: #2a1a1a; }
+
+/* Folder assignment dropdown */
+.folder-menu {
+  margin: 4px 0 2px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  z-index: 10;
+}
+.folder-menu-item {
+  padding: 5px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.folder-menu-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.folder-menu-item.selected { color: var(--text-accent); }
 
 .note-item-meta {
   margin-top: 2px;
@@ -327,6 +361,132 @@ input, textarea {
 .btn-new-sidebar:hover {
   background: #112211;
   border-color: var(--text-green);
+}
+
+/* Sidebar controls row (sort + folder) */
+.sidebar-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.sort-select {
+  flex: 1;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 3px 6px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.sort-select:hover,
+.sort-select:focus {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.btn-folder-new {
+  font-size: 11px;
+  color: var(--text-blue);
+  padding: 3px 8px;
+  border: 1px solid #1a2a3a;
+  border-radius: var(--radius);
+  background: #0d1520;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-folder-new:hover {
+  background: #0d1a28;
+  border-color: var(--text-blue);
+}
+
+/* Folder sections */
+.folder-section {
+  margin-bottom: 4px;
+}
+
+.folder-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  cursor: default;
+  transition: background 0.1s;
+}
+.folder-header:hover { background: var(--bg-hover); }
+.folder-header:hover .folder-delete-btn { opacity: 1; }
+
+.folder-toggle {
+  font-size: 8px;
+  color: var(--text-muted);
+  padding: 1px 3px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.folder-toggle:hover { color: var(--text-secondary); }
+
+.folder-name {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+
+.folder-name-input {
+  flex: 1;
+  background: var(--bg-base);
+  border: 1px solid var(--border-focus);
+  border-radius: 2px;
+  color: var(--text-primary);
+  font-size: 11px;
+  padding: 1px 4px;
+  outline: none;
+}
+
+.folder-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.folder-delete-btn {
+  opacity: 0;
+  font-size: 9px;
+  color: var(--text-muted);
+  padding: 2px 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.folder-delete-btn:hover { color: var(--text-red); }
+
+.folder-notes {
+  padding-left: 12px;
+}
+
+.folder-empty {
+  padding: 6px 10px !important;
+  font-size: 11px;
+}
+
+.folder-divider {
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 6px 8px 2px;
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+  border-top: 1px solid var(--border);
+  margin: 4px 0 2px;
 }
 
 /* ── Main area ──────────────────────────────────── */
@@ -660,7 +820,7 @@ input, textarea {
   border: 1px solid #4a5568;
   border-radius: 2px;
   background: transparent;
-  cursor: default;
+  cursor: pointer;
   vertical-align: -2px;
   margin-right: 5px;
   flex-shrink: 0;
