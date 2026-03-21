@@ -6,6 +6,7 @@ import './App.css'
 
 const STORAGE_KEY = 'notecode_notes'
 const FOLDERS_KEY = 'notecode_folders'
+const TRASH_KEY   = 'notecode_trash'
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
@@ -44,6 +45,18 @@ function loadFolders() {
 
 function saveFolders(folders) {
   localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders))
+}
+
+function loadTrash() {
+  try {
+    const raw = localStorage.getItem(TRASH_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
+function saveTrash(trash) {
+  localStorage.setItem(TRASH_KEY, JSON.stringify(trash))
 }
 
 const CHECKBOX_RE = /^\[([ x])\]/
@@ -131,6 +144,7 @@ A terminal-inspired note-taking app powered by Markdown.
   })
 
   const [folders, setFolders] = useState(loadFolders)
+  const [trash, setTrash] = useState(loadTrash)
 
   const [activeId, setActiveId] = useState(() => {
     const saved = loadNotes()
@@ -149,6 +163,7 @@ A terminal-inspired note-taking app powered by Markdown.
 
   useEffect(() => { saveNotes(notes) }, [notes])
   useEffect(() => { saveFolders(folders) }, [folders])
+  useEffect(() => { saveTrash(trash) }, [trash])
 
   const activeNote = notes.find(n => n.id === activeId) ?? null
 
@@ -160,13 +175,31 @@ A terminal-inspired note-taking app powered by Markdown.
 
   const deleteNote = useCallback((id) => {
     setNotes(prev => {
+      const note = prev.find(n => n.id === id)
+      if (note) setTrash(t => [{ ...note, deletedAt: Date.now() }, ...t])
       const next = prev.filter(n => n.id !== id)
-      if (activeId === id) {
-        setActiveId(next.length > 0 ? next[0].id : null)
-      }
+      if (activeId === id) setActiveId(next.length > 0 ? next[0].id : null)
       return next
     })
   }, [activeId])
+
+  const restoreNote = useCallback((id) => {
+    setTrash(prev => {
+      const note = prev.find(n => n.id === id)
+      if (note) {
+        const { deletedAt, ...restored } = note
+        setNotes(ns => [restored, ...ns])
+        setActiveId(restored.id)
+      }
+      return prev.filter(n => n.id !== id)
+    })
+  }, [])
+
+  const permanentDelete = useCallback((id) => {
+    setTrash(prev => prev.filter(n => n.id !== id))
+  }, [])
+
+  const emptyTrash = useCallback(() => setTrash([]), [])
 
   const updateNote = useCallback((id, changes) => {
     setNotes(prev => prev.map(n =>
@@ -276,6 +309,10 @@ A terminal-inspired note-taking app powered by Markdown.
             onFolderDelete={deleteFolder}
             onFolderRename={renameFolder}
             onNoteFolder={moveNoteToFolder}
+            trash={trash}
+            onRestore={restoreNote}
+            onPermanentDelete={permanentDelete}
+            onEmptyTrash={emptyTrash}
           />
         )}
 

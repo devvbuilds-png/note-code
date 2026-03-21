@@ -526,6 +526,120 @@ input, textarea {
   cursor: grabbing;
 }
 
+/* ── Bin / Trash ────────────────────────────────── */
+.trash-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 0;
+}
+
+.trash-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+}
+
+.btn-empty-trash {
+  font-size: 10px;
+  color: var(--text-red);
+  padding: 2px 6px;
+  border: 1px solid #3a1a1a;
+  border-radius: var(--radius);
+  background: #1a0d0d;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-empty-trash:hover {
+  background: #2a1010;
+  border-color: var(--text-red);
+}
+
+.trash-item {
+  cursor: default !important;
+  opacity: 0.85;
+}
+.trash-item:hover { opacity: 1; }
+
+.trash-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.trash-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.trash-item:hover .trash-actions { opacity: 1; }
+
+.btn-restore {
+  font-size: 10px;
+  color: var(--text-green);
+  padding: 2px 6px;
+  border: 1px solid #2a3a2a;
+  border-radius: var(--radius);
+  background: #0d1a0d;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-restore:hover {
+  background: #112211;
+  border-color: var(--text-green);
+}
+
+.btn-perm-delete {
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: color 0.15s;
+}
+.btn-perm-delete:hover { color: var(--text-red); }
+
+.btn-back-notes {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  transition: color 0.15s, border-color 0.15s;
+}
+.btn-back-notes:hover {
+  color: var(--text-primary);
+  border-color: var(--border-focus);
+}
+
+/* Bin button in footer */
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-bin {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: color 0.15s, border-color 0.15s;
+}
+.btn-bin:hover {
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+.btn-bin.has-items {
+  color: var(--text-orange);
+}
+.btn-bin.has-items:hover {
+  border-color: var(--text-orange);
+}
+
 /* ── Main area ──────────────────────────────────── */
 .main-area {
   flex: 1;

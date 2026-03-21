@@ -29,11 +29,21 @@ function sortNotes(arr, sortBy) {
   })
 }
 
+function timeSince(ts) {
+  const diff = Date.now() - ts
+  const days = Math.floor(diff / 86400000)
+  if (days < 1) return 'today'
+  if (days === 1) return 'yesterday'
+  return `${days}d ago`
+}
+
 export default function Sidebar({
   notes, activeId, search, onSearch, onSelect, onNew, onDelete,
   folders, onFolderCreate, onFolderDelete, onFolderRename, onNoteFolder,
+  trash, onRestore, onPermanentDelete, onEmptyTrash,
 }) {
   const searchRef = useRef(null)
+  const [view, setView] = useState('notes') // 'notes' | 'trash'
   const [sortBy, setSortBy] = useState('updated-desc')
   const [collapsed, setCollapsed] = useState({})
   const [editingFolder, setEditingFolder] = useState(null)
@@ -157,6 +167,48 @@ export default function Sidebar({
     )
   }
 
+  if (view === 'trash') {
+    return (
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <div className="trash-header-row">
+            <span className="trash-title">⌫ bin</span>
+            {trash.length > 0 && (
+              <button className="btn-empty-trash" onClick={onEmptyTrash}>empty bin</button>
+            )}
+          </div>
+        </div>
+
+        <div className="notes-list">
+          {trash.length === 0 ? (
+            <div className="notes-empty">bin is empty</div>
+          ) : (
+            trash.map(note => (
+              <div key={note.id} className="note-item trash-item">
+                <div className="note-item-header">
+                  <span className="note-item-title">{note.title || 'Untitled'}</span>
+                </div>
+                <div className="note-item-excerpt">{excerpt(note.content)}</div>
+                <div className="trash-item-footer">
+                  <span className="note-item-time">deleted {timeSince(note.deletedAt)}</span>
+                  <div className="trash-actions">
+                    <button className="btn-restore" onClick={() => onRestore(note.id)} title="Restore note">restore</button>
+                    <button className="btn-perm-delete" onClick={() => onPermanentDelete(note.id)} title="Delete forever">✕</button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="sidebar-footer">
+          <span className="sidebar-count">{trash.length} deleted</span>
+          <button className="btn-back-notes" onClick={() => setView('notes')}>← notes</button>
+        </div>
+      </aside>
+    )
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -205,7 +257,6 @@ export default function Sidebar({
             onDragOver={e => handleFolderDragOver(e, folder.id)}
             onDrop={e => handleFolderDrop(e, folder.id)}
             onDragLeave={e => {
-              // Only clear if leaving the folder-section entirely
               if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null)
             }}
           >
@@ -275,7 +326,14 @@ export default function Sidebar({
 
       <div className="sidebar-footer">
         <span className="sidebar-count">{notes.length} note{notes.length !== 1 ? 's' : ''}</span>
-        <button className="btn-new-sidebar" onClick={onNew}>+ new</button>
+        <div className="footer-right">
+          <button
+            className={`btn-bin${trash.length > 0 ? ' has-items' : ''}`}
+            onClick={() => setView('trash')}
+            title="Bin"
+          >⌫{trash.length > 0 ? ` ${trash.length}` : ''}</button>
+          <button className="btn-new-sidebar" onClick={onNew}>+ new</button>
+        </div>
       </div>
     </aside>
   )
