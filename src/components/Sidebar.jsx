@@ -104,6 +104,13 @@ export default function Sidebar({
     setDragOver(null)
   }
 
+  function handleFolderDragLeave(e, folderId) {
+    // Only clear if truly leaving this folder section (not just moving between children)
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOver(prev => prev === folderId ? null : prev)
+    }
+  }
+
   function handleUnfiledDragOver(e) {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
@@ -256,9 +263,7 @@ export default function Sidebar({
             className={`folder-section${dragOver === folder.id ? ' drag-over' : ''}`}
             onDragOver={e => handleFolderDragOver(e, folder.id)}
             onDrop={e => handleFolderDrop(e, folder.id)}
-            onDragLeave={e => {
-              if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null)
-            }}
+            onDragLeave={e => handleFolderDragLeave(e, folder.id)}
           >
             <div className="folder-header" onClick={() => toggleCollapse(folder.id)}>
               <button className="folder-toggle" onClick={e => { e.stopPropagation(); toggleCollapse(folder.id) }}>
@@ -303,25 +308,35 @@ export default function Sidebar({
           </div>
         ))}
 
-        {/* Unfiled divider — also a drop target */}
-        {folders.length > 0 && (
+        {/* Unfiled drop zone — wraps divider + all unfiled notes */}
+        {folders.length > 0 ? (
           <div
-            className={`folder-divider${dragOver === 'unfiled' ? ' drag-over' : ''}`}
+            className={`unfiled-zone${dragOver === 'unfiled' ? ' drag-over' : ''}${draggedId ? ' drag-active' : ''}`}
             onDragOver={handleUnfiledDragOver}
             onDrop={handleUnfiledDrop}
-            onDragLeave={() => setDragOver(null)}
-          >unfiled</div>
-        )}
-
-        {/* Empty state */}
-        {notes.length === 0 && (
-          <div className="notes-empty">
-            {search ? `no results for "${search}"` : 'no notes yet'}
+            onDragLeave={e => {
+              if (!e.currentTarget.contains(e.relatedTarget))
+                setDragOver(prev => prev === 'unfiled' ? null : prev)
+            }}
+          >
+            <div className="folder-divider">unfiled</div>
+            {notes.length === 0 && !draggedId && (
+              <div className="notes-empty">
+                {search ? `no results for "${search}"` : 'no notes yet'}
+              </div>
+            )}
+            {unfiledNotes.map(note => renderNote(note))}
           </div>
+        ) : (
+          <>
+            {notes.length === 0 && (
+              <div className="notes-empty">
+                {search ? `no results for "${search}"` : 'no notes yet'}
+              </div>
+            )}
+            {unfiledNotes.map(note => renderNote(note))}
+          </>
         )}
-
-        {/* Unfiled notes */}
-        {unfiledNotes.map(note => renderNote(note))}
       </div>
 
       <div className="sidebar-footer">

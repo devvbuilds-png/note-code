@@ -511,13 +511,24 @@ input, textarea {
   letter-spacing: 0.05em;
   border-top: 1px solid var(--border);
   margin: 4px 0 2px;
-  transition: color 0.15s, background 0.15s;
-  border-radius: var(--radius);
 }
-.folder-divider.drag-over {
-  background: var(--accent-dim);
-  color: var(--text-accent);
+
+/* Unfiled drop zone */
+.unfiled-zone {
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+  min-height: 32px;
+}
+.unfiled-zone.drag-active {
+  border-color: var(--border);
+}
+.unfiled-zone.drag-over {
   border-color: var(--text-accent);
+  background: var(--accent-dim);
+}
+.unfiled-zone.drag-over .folder-divider {
+  color: var(--text-accent);
 }
 
 /* Dragging state */
