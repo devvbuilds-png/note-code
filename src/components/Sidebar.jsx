@@ -39,6 +39,8 @@ export default function Sidebar({
   const [editingFolder, setEditingFolder] = useState(null)
   const [folderName, setFolderName] = useState('')
   const [noteFolderMenu, setNoteFolderMenu] = useState(null)
+  const [draggedId, setDraggedId] = useState(null)
+  const [dragOver, setDragOver] = useState(null) // folderId | 'unfiled'
 
   // Close folder menu on outside click
   useEffect(() => {
@@ -68,11 +70,51 @@ export default function Sidebar({
     setEditingFolder(null)
   }
 
+  // Drag handlers
+  function handleDragStart(e, noteId) {
+    setDraggedId(noteId)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  function handleDragEnd() {
+    setDraggedId(null)
+    setDragOver(null)
+  }
+
+  function handleFolderDragOver(e, folderId) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOver(folderId)
+  }
+
+  function handleFolderDrop(e, folderId) {
+    e.preventDefault()
+    if (draggedId) onNoteFolder(draggedId, folderId)
+    setDraggedId(null)
+    setDragOver(null)
+  }
+
+  function handleUnfiledDragOver(e) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOver('unfiled')
+  }
+
+  function handleUnfiledDrop(e) {
+    e.preventDefault()
+    if (draggedId) onNoteFolder(draggedId, null)
+    setDraggedId(null)
+    setDragOver(null)
+  }
+
   function renderNote(note) {
     return (
       <div
         key={note.id}
-        className={`note-item${note.id === activeId ? ' active' : ''}`}
+        className={`note-item${note.id === activeId ? ' active' : ''}${draggedId === note.id ? ' dragging' : ''}`}
+        draggable
+        onDragStart={e => handleDragStart(e, note.id)}
+        onDragEnd={handleDragEnd}
         onClick={() => { onSelect(note.id); setNoteFolderMenu(null) }}
       >
         <div className="note-item-header">
@@ -139,10 +181,10 @@ export default function Sidebar({
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
           >
-            <option value="updated-desc">recent</option>
-            <option value="updated-asc">oldest</option>
-            <option value="created-desc">new first</option>
-            <option value="created-asc">old first</option>
+            <option value="updated-desc">recently updated</option>
+            <option value="updated-asc">oldest updated</option>
+            <option value="created-desc">newest created</option>
+            <option value="created-asc">oldest created</option>
             <option value="title-asc">a → z</option>
             <option value="title-desc">z → a</option>
           </select>
@@ -157,9 +199,18 @@ export default function Sidebar({
       <div className="notes-list">
         {/* Folder sections */}
         {folders.map(folder => (
-          <div key={folder.id} className="folder-section">
-            <div className="folder-header">
-              <button className="folder-toggle" onClick={() => toggleCollapse(folder.id)}>
+          <div
+            key={folder.id}
+            className={`folder-section${dragOver === folder.id ? ' drag-over' : ''}`}
+            onDragOver={e => handleFolderDragOver(e, folder.id)}
+            onDrop={e => handleFolderDrop(e, folder.id)}
+            onDragLeave={e => {
+              // Only clear if leaving the folder-section entirely
+              if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null)
+            }}
+          >
+            <div className="folder-header" onClick={() => toggleCollapse(folder.id)}>
+              <button className="folder-toggle" onClick={e => { e.stopPropagation(); toggleCollapse(folder.id) }}>
                 {collapsed[folder.id] ? '▶' : '▼'}
               </button>
 
@@ -177,7 +228,7 @@ export default function Sidebar({
                   onClick={e => e.stopPropagation()}
                 />
               ) : (
-                <span className="folder-name" onDoubleClick={() => startRename(folder)}>
+                <span className="folder-name" onDoubleClick={e => { e.stopPropagation(); startRename(folder) }}>
                   {folder.name}
                 </span>
               )}
@@ -185,7 +236,7 @@ export default function Sidebar({
               <span className="folder-count">{notesByFolder[folder.id]?.length ?? 0}</span>
               <button
                 className="folder-delete-btn"
-                onClick={() => onFolderDelete(folder.id)}
+                onClick={e => { e.stopPropagation(); onFolderDelete(folder.id) }}
                 title="Delete folder"
               >✕</button>
             </div>
@@ -193,7 +244,7 @@ export default function Sidebar({
             {!collapsed[folder.id] && (
               <div className="folder-notes">
                 {(notesByFolder[folder.id]?.length ?? 0) === 0
-                  ? <div className="notes-empty folder-empty">empty</div>
+                  ? <div className="notes-empty folder-empty">drop notes here</div>
                   : notesByFolder[folder.id].map(note => renderNote(note))
                 }
               </div>
@@ -201,9 +252,14 @@ export default function Sidebar({
           </div>
         ))}
 
-        {/* Unfiled divider */}
-        {folders.length > 0 && unfiledNotes.length > 0 && (
-          <div className="folder-divider">unfiled</div>
+        {/* Unfiled divider — also a drop target */}
+        {folders.length > 0 && (
+          <div
+            className={`folder-divider${dragOver === 'unfiled' ? ' drag-over' : ''}`}
+            onDragOver={handleUnfiledDragOver}
+            onDrop={handleUnfiledDrop}
+            onDragLeave={() => setDragOver(null)}
+          >unfiled</div>
         )}
 
         {/* Empty state */}

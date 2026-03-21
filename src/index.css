@@ -377,7 +377,9 @@ input, textarea {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
   padding: 3px 6px;
   outline: none;
   cursor: pointer;
@@ -386,6 +388,11 @@ input, textarea {
 .sort-select:hover,
 .sort-select:focus {
   border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+.sort-select option {
+  font-family: var(--font-mono);
+  background: var(--bg-elevated);
   color: var(--text-primary);
 }
 
@@ -407,19 +414,31 @@ input, textarea {
 
 /* Folder sections */
 .folder-section {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.folder-section.drag-over {
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 1px var(--accent-dim);
 }
 
 .folder-header {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 6px;
-  border-radius: var(--radius);
-  cursor: default;
+  gap: 5px;
+  padding: 7px 8px 7px 6px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid transparent;
+  cursor: pointer;
   transition: background 0.1s;
+  user-select: none;
 }
 .folder-header:hover { background: var(--bg-hover); }
+.folder-section:not(.drag-over) .folder-header:hover { border-bottom-color: transparent; }
 .folder-header:hover .folder-delete-btn { opacity: 1; }
 
 .folder-toggle {
@@ -434,12 +453,13 @@ input, textarea {
 .folder-name {
   flex: 1;
   font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-weight: 700;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   user-select: none;
+  letter-spacing: 0.02em;
 }
 
 .folder-name-input {
@@ -471,12 +491,16 @@ input, textarea {
 .folder-delete-btn:hover { color: var(--text-red); }
 
 .folder-notes {
-  padding-left: 12px;
+  padding: 4px 4px 4px 4px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-surface);
 }
 
 .folder-empty {
-  padding: 6px 10px !important;
+  padding: 8px 12px !important;
   font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .folder-divider {
@@ -487,6 +511,19 @@ input, textarea {
   letter-spacing: 0.05em;
   border-top: 1px solid var(--border);
   margin: 4px 0 2px;
+  transition: color 0.15s, background 0.15s;
+  border-radius: var(--radius);
+}
+.folder-divider.drag-over {
+  background: var(--accent-dim);
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+/* Dragging state */
+.note-item.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
 }
 
 /* ── Main area ──────────────────────────────────── */
