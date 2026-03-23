@@ -248,8 +248,8 @@ export default function Editor({ note, onChange, onTitleChange }) {
       <div className="cm-wrapper" ref={editorRef} />
 
       <div className="editor-statusbar">
-        <span>{note.content.split('\n').length} lines</span>
-        <span>{note.content.length} chars</span>
+        <span>{note.content.split('\n').length} ln</span>
+        <span>{note.content.length} ch</span>
         <span>markdown</span>
       </div>
     </div>

@@ -270,23 +270,24 @@ A terminal-inspired note-taking app powered by Markdown.
         <span className="topbar-title">
           <span className="topbar-prompt">~/</span>NoteCode
         </span>
+        <span className="topbar-divider" />
         <div className="topbar-actions">
           <div className="mode-switcher">
             <button
               className={`mode-btn${mode === 'edit' ? ' active' : ''}`}
               onClick={() => setMode('edit')}
               title="Editor only"
-            >[ ]</button>
+            >edit</button>
             <button
               className={`mode-btn${mode === 'split' ? ' active' : ''}`}
               onClick={() => setMode('split')}
               title="Editor + Preview"
-            >[|]</button>
+            >split</button>
             <button
               className={`mode-btn${mode === 'read' ? ' active' : ''}`}
               onClick={() => setMode('read')}
               title="Reader only  (R)"
-            >[▶]</button>
+            >read</button>
           </div>
           <button className="icon-btn new-note-btn" onClick={newNote} title="New note (Ctrl+N)">
             + new
