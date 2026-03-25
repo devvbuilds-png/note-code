@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Sidebar from './components/Sidebar'
 import Editor from './components/Editor'
 import Preview from './components/Preview'
+import { FONT_OPTIONS, FONT_SIZE_MIN, FONT_SIZE_MAX } from './constants'
 import './App.css'
 
 const STORAGE_KEY     = 'notecode_notes'
@@ -9,20 +10,6 @@ const FOLDERS_KEY     = 'notecode_folders'
 const TRASH_KEY       = 'notecode_trash'
 const FONT_SIZE_KEY   = 'notecode_font_size'
 const FONT_FAMILY_KEY = 'notecode_font_family'
-
-const FONT_SIZE_MIN = 11
-const FONT_SIZE_MAX = 22
-
-const FONT_OPTIONS = [
-  { key: 'jetbrains-mono', label: 'JetBrains Mono',    stack: "'JetBrains Mono', monospace" },
-  { key: 'fira-code',      label: 'Fira Code',          stack: "'Fira Code', monospace" },
-  { key: 'ibm-plex-mono',  label: 'IBM Plex Mono',      stack: "'IBM Plex Mono', monospace" },
-  { key: 'inconsolata',    label: 'Inconsolata',         stack: "'Inconsolata', monospace" },
-  { key: 'inter',          label: 'Inter (sans)',        stack: "'Inter', sans-serif" },
-  { key: 'space-grotesk',  label: 'Space Grotesk',      stack: "'Space Grotesk', sans-serif" },
-  { key: 'ibm-plex-sans',  label: 'IBM Plex Sans',      stack: "'IBM Plex Sans', sans-serif" },
-  { key: 'dm-sans',        label: 'DM Sans',             stack: "'DM Sans', sans-serif" },
-]
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
@@ -191,13 +178,10 @@ A terminal-inspired note-taking app powered by Markdown.
   useEffect(() => { saveTrash(trash) }, [trash])
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--font-size', fontSize + 'px')
     localStorage.setItem(FONT_SIZE_KEY, String(fontSize))
   }, [fontSize])
 
   useEffect(() => {
-    const option = FONT_OPTIONS.find(f => f.key === fontFamily)
-    if (option) document.documentElement.style.setProperty('--font-mono', option.stack)
     localStorage.setItem(FONT_FAMILY_KEY, fontFamily)
   }, [fontFamily])
 
@@ -316,30 +300,6 @@ A terminal-inspired note-taking app powered by Markdown.
         </span>
         <span className="topbar-divider" />
         <div className="topbar-actions">
-          <div className="font-size-controls">
-            <button
-              className="font-size-btn"
-              onClick={decreaseFontSize}
-              disabled={fontSize <= FONT_SIZE_MIN}
-              title={`Decrease font size (${fontSize}px)`}
-            >A<span className="font-size-sub">-</span></button>
-            <button
-              className="font-size-btn"
-              onClick={increaseFontSize}
-              disabled={fontSize >= FONT_SIZE_MAX}
-              title={`Increase font size (${fontSize}px)`}
-            >A<span className="font-size-sub">+</span></button>
-          </div>
-          <select
-            className="font-family-select"
-            value={fontFamily}
-            onChange={e => setFontFamily(e.target.value)}
-            title="Font family"
-          >
-            {FONT_OPTIONS.map(f => (
-              <option key={f.key} value={f.key}>{f.label}</option>
-            ))}
-          </select>
           <div className="mode-switcher">
             <button
               className={`mode-btn${mode === 'edit' ? ' active' : ''}`}
@@ -385,7 +345,13 @@ A terminal-inspired note-taking app powered by Markdown.
           />
         )}
 
-        <main className="main-area">
+        <main
+          className="main-area"
+          style={{
+            '--font-size': fontSize + 'px',
+            '--font-mono': FONT_OPTIONS.find(f => f.key === fontFamily)?.stack ?? 'inherit',
+          }}
+        >
           {activeNote ? (
             <>
               {(mode === 'edit' || mode === 'split') && (
@@ -393,6 +359,11 @@ A terminal-inspired note-taking app powered by Markdown.
                   note={activeNote}
                   onChange={(content) => updateNote(activeNote.id, { content })}
                   onTitleChange={(title) => updateNote(activeNote.id, { title })}
+                  fontSize={fontSize}
+                  fontFamily={fontFamily}
+                  onFontSizeDecrease={decreaseFontSize}
+                  onFontSizeIncrease={increaseFontSize}
+                  onFontFamilyChange={setFontFamily}
                 />
               )}
               {mode === 'split' && (

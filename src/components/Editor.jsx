@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
+import { FONT_OPTIONS, FONT_SIZE_MIN, FONT_SIZE_MAX } from '../constants'
 import { EditorView, keymap } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
@@ -163,7 +164,11 @@ function insertBlock(view, type) {
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
-export default function Editor({ note, onChange, onTitleChange }) {
+export default function Editor({
+  note, onChange, onTitleChange,
+  fontSize, fontFamily,
+  onFontSizeDecrease, onFontSizeIncrease, onFontFamilyChange,
+}) {
   const editorRef = useRef(null)
   const viewRef = useRef(null)
   const onChangeRef = useRef(onChange)
@@ -243,6 +248,31 @@ export default function Editor({ note, onChange, onTitleChange }) {
         <button className="toolbar-btn" title="Blockquote" onClick={() => getView() && insertBlock(getView(), 'quote')}>&gt;</button>
         <span className="toolbar-sep" />
         <button className="toolbar-btn" title="Checkbox" onClick={() => getView() && insertCheckbox(getView())}>☐</button>
+        <span className="toolbar-sep" />
+        <div className="font-size-controls">
+          <button
+            className="font-size-btn"
+            onClick={onFontSizeDecrease}
+            disabled={fontSize <= FONT_SIZE_MIN}
+            title={`Decrease font size (${fontSize}px)`}
+          >A<span className="font-size-sub">-</span></button>
+          <button
+            className="font-size-btn"
+            onClick={onFontSizeIncrease}
+            disabled={fontSize >= FONT_SIZE_MAX}
+            title={`Increase font size (${fontSize}px)`}
+          >A<span className="font-size-sub">+</span></button>
+        </div>
+        <select
+          className="font-family-select"
+          value={fontFamily}
+          onChange={e => onFontFamilyChange(e.target.value)}
+          title="Font family"
+        >
+          {FONT_OPTIONS.map(f => (
+            <option key={f.key} value={f.key}>{f.label}</option>
+          ))}
+        </select>
       </div>
 
       <div className="cm-wrapper" ref={editorRef} />
