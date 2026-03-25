@@ -4,9 +4,25 @@ import Editor from './components/Editor'
 import Preview from './components/Preview'
 import './App.css'
 
-const STORAGE_KEY = 'notecode_notes'
-const FOLDERS_KEY = 'notecode_folders'
-const TRASH_KEY   = 'notecode_trash'
+const STORAGE_KEY     = 'notecode_notes'
+const FOLDERS_KEY     = 'notecode_folders'
+const TRASH_KEY       = 'notecode_trash'
+const FONT_SIZE_KEY   = 'notecode_font_size'
+const FONT_FAMILY_KEY = 'notecode_font_family'
+
+const FONT_SIZE_MIN = 11
+const FONT_SIZE_MAX = 22
+
+const FONT_OPTIONS = [
+  { key: 'jetbrains-mono', label: 'JetBrains Mono',    stack: "'JetBrains Mono', monospace" },
+  { key: 'fira-code',      label: 'Fira Code',          stack: "'Fira Code', monospace" },
+  { key: 'ibm-plex-mono',  label: 'IBM Plex Mono',      stack: "'IBM Plex Mono', monospace" },
+  { key: 'inconsolata',    label: 'Inconsolata',         stack: "'Inconsolata', monospace" },
+  { key: 'inter',          label: 'Inter (sans)',        stack: "'Inter', sans-serif" },
+  { key: 'space-grotesk',  label: 'Space Grotesk',      stack: "'Space Grotesk', sans-serif" },
+  { key: 'ibm-plex-sans',  label: 'IBM Plex Sans',      stack: "'IBM Plex Sans', sans-serif" },
+  { key: 'dm-sans',        label: 'DM Sans',             stack: "'DM Sans', sans-serif" },
+]
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
@@ -155,6 +171,15 @@ A terminal-inspired note-taking app powered by Markdown.
   const [mode, setMode] = useState('split') // 'edit' | 'split' | 'read'
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = parseInt(localStorage.getItem(FONT_SIZE_KEY), 10)
+    return (saved >= FONT_SIZE_MIN && saved <= FONT_SIZE_MAX) ? saved : 13
+  })
+  const [fontFamily, setFontFamily] = useState(() => {
+    const saved = localStorage.getItem(FONT_FAMILY_KEY)
+    return FONT_OPTIONS.find(f => f.key === saved) ? saved : 'jetbrains-mono'
+  })
+
   useEffect(() => {
     if (activeId === null && notes.length > 0) {
       setActiveId(notes[0].id)
@@ -164,6 +189,17 @@ A terminal-inspired note-taking app powered by Markdown.
   useEffect(() => { saveNotes(notes) }, [notes])
   useEffect(() => { saveFolders(folders) }, [folders])
   useEffect(() => { saveTrash(trash) }, [trash])
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--font-size', fontSize + 'px')
+    localStorage.setItem(FONT_SIZE_KEY, String(fontSize))
+  }, [fontSize])
+
+  useEffect(() => {
+    const option = FONT_OPTIONS.find(f => f.key === fontFamily)
+    if (option) document.documentElement.style.setProperty('--font-mono', option.stack)
+    localStorage.setItem(FONT_FAMILY_KEY, fontFamily)
+  }, [fontFamily])
 
   const activeNote = notes.find(n => n.id === activeId) ?? null
 
@@ -200,6 +236,9 @@ A terminal-inspired note-taking app powered by Markdown.
   }, [])
 
   const emptyTrash = useCallback(() => setTrash([]), [])
+
+  const decreaseFontSize = useCallback(() => setFontSize(s => Math.max(FONT_SIZE_MIN, s - 1)), [])
+  const increaseFontSize = useCallback(() => setFontSize(s => Math.min(FONT_SIZE_MAX, s + 1)), [])
 
   const updateNote = useCallback((id, changes) => {
     setNotes(prev => prev.map(n =>
@@ -272,6 +311,30 @@ A terminal-inspired note-taking app powered by Markdown.
         </span>
         <span className="topbar-divider" />
         <div className="topbar-actions">
+          <div className="font-size-controls">
+            <button
+              className="font-size-btn"
+              onClick={decreaseFontSize}
+              disabled={fontSize <= FONT_SIZE_MIN}
+              title={`Decrease font size (${fontSize}px)`}
+            >A<span className="font-size-sub">-</span></button>
+            <button
+              className="font-size-btn"
+              onClick={increaseFontSize}
+              disabled={fontSize >= FONT_SIZE_MAX}
+              title={`Increase font size (${fontSize}px)`}
+            >A<span className="font-size-sub">+</span></button>
+          </div>
+          <select
+            className="font-family-select"
+            value={fontFamily}
+            onChange={e => setFontFamily(e.target.value)}
+            title="Font family"
+          >
+            {FONT_OPTIONS.map(f => (
+              <option key={f.key} value={f.key}>{f.label}</option>
+            ))}
+          </select>
           <div className="mode-switcher">
             <button
               className={`mode-btn${mode === 'edit' ? ' active' : ''}`}
