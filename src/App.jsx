@@ -348,7 +348,7 @@ A terminal-inspired note-taking app powered by Markdown.
         <main
           className="main-area"
           style={{
-            '--font-size': fontSize + 'px',
+            fontSize: fontSize + 'px',
             '--font-mono': FONT_OPTIONS.find(f => f.key === fontFamily)?.stack ?? 'inherit',
           }}
         >
