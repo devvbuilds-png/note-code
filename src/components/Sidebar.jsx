@@ -141,12 +141,12 @@ export default function Sidebar({
               className={`note-folder-btn${noteFolderMenu === note.id ? ' open' : ''}`}
               onClick={e => { e.stopPropagation(); setNoteFolderMenu(noteFolderMenu === note.id ? null : note.id) }}
               title="Move to folder"
-            >⊕</button>
+            >⊞</button>
             <button
               className="note-delete-btn"
               onClick={e => { e.stopPropagation(); onDelete(note.id) }}
               title="Delete note"
-            >✕</button>
+            >×</button>
           </div>
         </div>
 
@@ -179,7 +179,7 @@ export default function Sidebar({
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="trash-header-row">
-            <span className="trash-title">⌫ bin</span>
+            <span className="trash-title">bin</span>
             {trash.length > 0 && (
               <button className="btn-empty-trash" onClick={onEmptyTrash}>empty bin</button>
             )}
@@ -200,7 +200,7 @@ export default function Sidebar({
                   <span className="note-item-time">deleted {timeSince(note.deletedAt)}</span>
                   <div className="trash-actions">
                     <button className="btn-restore" onClick={() => onRestore(note.id)} title="Restore note">restore</button>
-                    <button className="btn-perm-delete" onClick={() => onPermanentDelete(note.id)} title="Delete forever">✕</button>
+                    <button className="btn-perm-delete" onClick={() => onPermanentDelete(note.id)} title="Delete forever">×</button>
                   </div>
                 </div>
               </div>
@@ -231,7 +231,7 @@ export default function Sidebar({
             spellCheck={false}
           />
           {search && (
-            <button className="search-clear" onClick={() => onSearch('')} title="Clear">✕</button>
+            <button className="search-clear" onClick={() => onSearch('')} title="Clear">×</button>
           )}
         </div>
         <div className="sidebar-controls">
@@ -294,7 +294,7 @@ export default function Sidebar({
                 className="folder-delete-btn"
                 onClick={e => { e.stopPropagation(); onFolderDelete(folder.id) }}
                 title="Delete folder"
-              >✕</button>
+              >×</button>
             </div>
 
             {!collapsed[folder.id] && (

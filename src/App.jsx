@@ -303,8 +303,13 @@ A terminal-inspired note-taking app powered by Markdown.
           className="icon-btn topbar-menu"
           onClick={() => setSidebarOpen(o => !o)}
           title="Toggle sidebar"
+          aria-label="Toggle sidebar"
         >
-          <span className="icon-hamburger">&#9776;</span>
+          <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="14" height="1.5" rx="0.75" fill="currentColor"/>
+            <rect y="5.25" width="10" height="1.5" rx="0.75" fill="currentColor"/>
+            <rect y="10.5" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+          </svg>
         </button>
         <span className="topbar-title">
           <span className="topbar-prompt">~/</span>NoteCode
