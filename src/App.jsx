@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import Sidebar from './components/Sidebar'
+import NoteCanvas from './components/NoteCanvas'
 import Editor from './components/Editor'
 import Preview from './components/Preview'
 import { FONT_OPTIONS, FONT_SIZE_MIN, FONT_SIZE_MAX } from './constants'
@@ -23,6 +23,8 @@ function createNote(title = 'Untitled') {
     folder: null,
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    canvasX: 600,
+    canvasY: 400,
   }
 }
 
@@ -62,12 +64,56 @@ function saveTrash(trash) {
   localStorage.setItem(TRASH_KEY, JSON.stringify(trash))
 }
 
+// ── Position migration helpers ────────────────────────────────────────────────
+function hashId(id) {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (Math.imul(31, h) + id.charCodeAt(i)) | 0
+  return (h >>> 0) / 0xFFFFFFFF
+}
+
+function assignMissingFolderPositions(folders) {
+  const n = folders.length
+  return folders.map((f, i) => {
+    if (f.canvasX != null) return f
+    const x = 300 + i * 240 - ((n - 1) * 120)
+    return { ...f, canvasX: x, canvasY: 200 }
+  })
+}
+
+function assignMissingNotePositions(notes, folders) {
+  // Build a map of folderIndex → count so we can compute angles
+  const folderNoteCount = {}
+  return notes.map(note => {
+    if (note.canvasX != null) return note
+    if (note.folder) {
+      const folder = folders.find(f => f.id === note.folder)
+      if (folder) {
+        folderNoteCount[note.folder] = (folderNoteCount[note.folder] ?? 0) + 1
+        const idx = folderNoteCount[note.folder] - 1
+        const angle = -Math.PI / 2 + idx * 0.9
+        const r = 120 + idx * 15
+        return {
+          ...note,
+          canvasX: folder.canvasX + Math.cos(angle) * r,
+          canvasY: folder.canvasY + Math.sin(angle) * r,
+        }
+      }
+    }
+    // Unfiled: scatter pseudo-randomly using hashed id
+    const h1 = hashId(note.id)
+    const h2 = hashId(note.id + 'y')
+    return {
+      ...note,
+      canvasX: 100 + h1 * 1300,
+      canvasY: 380 + h2 * 900,
+    }
+  })
+}
+
 const CHECKBOX_RE = /^\[([ x])\]/
 
 function toggleAndReorderCheckbox(content, idx) {
   const lines = content.split('\n')
-
-  // Find the line at checkbox index idx
   let count = 0
   let targetLine = -1
   for (let i = 0; i < lines.length; i++) {
@@ -77,37 +123,31 @@ function toggleAndReorderCheckbox(content, idx) {
     }
   }
   if (targetLine === -1) return content
-
-  // Toggle
   const wasChecked = lines[targetLine].startsWith('[x]')
   lines[targetLine] = wasChecked
     ? lines[targetLine].replace('[x]', '[ ]')
     : lines[targetLine].replace('[ ]', '[x]')
-
-  // Find the consecutive checkbox block
-  let start = targetLine
-  let end = targetLine
+  let start = targetLine, end = targetLine
   while (start > 0 && CHECKBOX_RE.test(lines[start - 1])) start--
   while (end < lines.length - 1 && CHECKBOX_RE.test(lines[end + 1])) end++
-
-  // Sort block: checked items float to top
   const block = lines.slice(start, end + 1)
   block.sort((a, b) => {
-    const aChecked = a.startsWith('[x]')
-    const bChecked = b.startsWith('[x]')
+    const aChecked = a.startsWith('[x]'), bChecked = b.startsWith('[x]')
     if (aChecked === bChecked) return 0
     return aChecked ? -1 : 1
   })
   lines.splice(start, end - start + 1, ...block)
-
   return lines.join('\n')
 }
 
 export default function App() {
   const [notes, setNotes] = useState(() => {
+    const savedFolders = assignMissingFolderPositions(loadFolders())
     const saved = loadNotes()
-    if (saved.length > 0) return saved
+    if (saved.length > 0) return assignMissingNotePositions(saved, savedFolders)
     const welcome = createNote('Welcome to NoteCode')
+    welcome.canvasX = 400
+    welcome.canvasY = 300
     welcome.content = `# Welcome to NoteCode
 
 A terminal-inspired note-taking app powered by Markdown.
@@ -146,7 +186,9 @@ A terminal-inspired note-taking app powered by Markdown.
     return [welcome]
   })
 
-  const [folders, setFolders] = useState(loadFolders)
+  const [folders, setFolders] = useState(() =>
+    assignMissingFolderPositions(loadFolders())
+  )
   const [trash, setTrash] = useState(loadTrash)
 
   const [activeId, setActiveId] = useState(() => {
@@ -154,9 +196,8 @@ A terminal-inspired note-taking app powered by Markdown.
     return saved.length > 0 ? saved[0].id : null
   })
 
-  const [search, setSearch] = useState('')
-  const [mode, setMode] = useState('split') // 'edit' | 'split' | 'read'
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [mode, setMode] = useState('split')
+  const [canvasOpen, setCanvasOpen] = useState(true)
 
   const [fontSize, setFontSize] = useState(() => {
     const saved = parseInt(localStorage.getItem(FONT_SIZE_KEY), 10)
@@ -168,29 +209,23 @@ A terminal-inspired note-taking app powered by Markdown.
   })
 
   useEffect(() => {
-    if (activeId === null && notes.length > 0) {
-      setActiveId(notes[0].id)
-    }
+    if (activeId === null && notes.length > 0) setActiveId(notes[0].id)
   }, [notes, activeId])
 
   useEffect(() => { saveNotes(notes) }, [notes])
   useEffect(() => { saveFolders(folders) }, [folders])
   useEffect(() => { saveTrash(trash) }, [trash])
-
-  useEffect(() => {
-    localStorage.setItem(FONT_SIZE_KEY, String(fontSize))
-  }, [fontSize])
-
-  useEffect(() => {
-    localStorage.setItem(FONT_FAMILY_KEY, fontFamily)
-  }, [fontFamily])
+  useEffect(() => { localStorage.setItem(FONT_SIZE_KEY, String(fontSize)) }, [fontSize])
+  useEffect(() => { localStorage.setItem(FONT_FAMILY_KEY, fontFamily) }, [fontFamily])
 
   const activeNote = notes.find(n => n.id === activeId) ?? null
 
-  const newNote = useCallback(() => {
+  const newNote = useCallback((pos) => {
     const note = createNote()
+    if (pos) { note.canvasX = pos.x; note.canvasY = pos.y }
     setNotes(prev => [note, ...prev])
     setActiveId(note.id)
+    return note.id
   }, [])
 
   const deleteNote = useCallback((id) => {
@@ -239,8 +274,11 @@ A terminal-inspired note-taking app powered by Markdown.
     }))
   }, [activeId])
 
-  const createFolder = useCallback((name) => {
-    setFolders(prev => [...prev, { id: generateId(), name }])
+  const createFolder = useCallback((name, pos) => {
+    const folder = { id: generateId(), name }
+    if (pos) { folder.canvasX = pos.x; folder.canvasY = pos.y }
+    else { folder.canvasX = 400; folder.canvasY = 300 }
+    setFolders(prev => [...prev, folder])
   }, [])
 
   const deleteFolder = useCallback((id) => {
@@ -254,6 +292,14 @@ A terminal-inspired note-taking app powered by Markdown.
 
   const moveNoteToFolder = useCallback((noteId, folderId) => {
     setNotes(prev => prev.map(n => n.id === noteId ? { ...n, folder: folderId } : n))
+  }, [])
+
+  const handleNoteMove = useCallback((noteId, { x, y }) => {
+    setNotes(prev => prev.map(n => n.id === noteId ? { ...n, canvasX: x, canvasY: y } : n))
+  }, [])
+
+  const handleFolderMove = useCallback((folderId, { x, y }) => {
+    setFolders(prev => prev.map(f => f.id === folderId ? { ...f, canvasX: x, canvasY: y } : f))
   }, [])
 
   useEffect(() => {
@@ -273,21 +319,14 @@ A terminal-inspired note-taking app powered by Markdown.
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [newNote])
 
-  const filteredNotes = search.trim()
-    ? notes.filter(n =>
-        n.title.toLowerCase().includes(search.toLowerCase()) ||
-        n.content.toLowerCase().includes(search.toLowerCase())
-      )
-    : notes
-
   return (
     <div className="app">
       <header className="topbar">
         <button
           className="icon-btn topbar-menu"
-          onClick={() => setSidebarOpen(o => !o)}
-          title="Toggle sidebar"
-          aria-label="Toggle sidebar"
+          onClick={() => setCanvasOpen(o => !o)}
+          title="Toggle canvas"
+          aria-label="Toggle canvas"
         >
           <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="14" height="1.5" rx="0.75" fill="currentColor"/>
@@ -301,43 +340,29 @@ A terminal-inspired note-taking app powered by Markdown.
         <span className="topbar-divider" />
         <div className="topbar-actions">
           <div className="mode-switcher">
-            <button
-              className={`mode-btn${mode === 'edit' ? ' active' : ''}`}
-              onClick={() => setMode('edit')}
-              title="Editor only"
-            >edit</button>
-            <button
-              className={`mode-btn${mode === 'split' ? ' active' : ''}`}
-              onClick={() => setMode('split')}
-              title="Editor + Preview"
-            >split</button>
-            <button
-              className={`mode-btn${mode === 'read' ? ' active' : ''}`}
-              onClick={() => setMode('read')}
-              title="Reader only  (R)"
-            >read</button>
+            <button className={`mode-btn${mode === 'edit'  ? ' active' : ''}`} onClick={() => setMode('edit')}  title="Editor only">edit</button>
+            <button className={`mode-btn${mode === 'split' ? ' active' : ''}`} onClick={() => setMode('split')} title="Editor + Preview">split</button>
+            <button className={`mode-btn${mode === 'read'  ? ' active' : ''}`} onClick={() => setMode('read')}  title="Reader only  (R)">read</button>
           </div>
-          <button className="icon-btn new-note-btn" onClick={newNote} title="New note (Ctrl+N)">
-            + new
-          </button>
+          <button className="icon-btn new-note-btn" onClick={() => newNote()} title="New note (Ctrl+N)">+ new</button>
         </div>
       </header>
 
       <div className="workspace">
-        {sidebarOpen && (
-          <Sidebar
-            notes={filteredNotes}
+        {canvasOpen && (
+          <NoteCanvas
+            notes={notes}
+            folders={folders}
             activeId={activeId}
-            search={search}
-            onSearch={setSearch}
             onSelect={setActiveId}
             onNew={newNote}
             onDelete={deleteNote}
-            folders={folders}
+            onNoteMove={handleNoteMove}
+            onFolderMove={handleFolderMove}
+            onNoteFolder={moveNoteToFolder}
             onFolderCreate={createFolder}
             onFolderDelete={deleteFolder}
             onFolderRename={renameFolder}
-            onNoteFolder={moveNoteToFolder}
             trash={trash}
             onRestore={restoreNote}
             onPermanentDelete={permanentDelete}
@@ -385,7 +410,7 @@ A terminal-inspired note-taking app powered by Markdown.
             <div className="empty-state">
               <p className="empty-prompt">$ <span className="cursor">_</span></p>
               <p>No note selected.</p>
-              <button className="btn-primary" onClick={newNote}>+ Create your first note</button>
+              <button className="btn-primary" onClick={() => newNote()}>+ Create your first note</button>
             </div>
           )}
         </main>
