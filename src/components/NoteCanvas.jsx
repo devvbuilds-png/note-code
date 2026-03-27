@@ -283,10 +283,21 @@ export default function NoteCanvas({
 
     if (d.type === 'item' && d.hasMoved) {
       if (d.kind === 'note') {
-        // Only assign to a folder when explicitly dropped onto one;
-        // dropping on empty space never removes a note from its folder
+        const note = notes.find(n => n.id === d.id)
         if (dropTargetId) {
+          // Dropped onto a folder card → assign to it
           onNoteFolder(d.id, dropTargetId)
+        } else if (note?.folder) {
+          // If dragged outside the fan-out radius of its own folder → unfile
+          const parentFolder = folders.find(f => f.id === note.folder)
+          if (parentFolder) {
+            const siblingCount = notes.filter(n => n.folder === note.folder).length
+            const fanRadius    = 160 + siblingCount * 16
+            const dist         = Math.hypot(d.liveX - parentFolder.canvasX, d.liveY - parentFolder.canvasY)
+            if (dist > fanRadius + 40) {
+              onNoteFolder(d.id, null)
+            }
+          }
         }
         onNoteMove(d.id, { x: d.liveX, y: d.liveY })
       } else if (d.kind === 'folder') {
