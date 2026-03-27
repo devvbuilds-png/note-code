@@ -64,7 +64,6 @@ function saveTrash(trash) {
   localStorage.setItem(TRASH_KEY, JSON.stringify(trash))
 }
 
-// ── Position migration helpers ────────────────────────────────────────────────
 function hashId(id) {
   let h = 0
   for (let i = 0; i < id.length; i++) h = (Math.imul(31, h) + id.charCodeAt(i)) | 0
@@ -81,7 +80,6 @@ function assignMissingFolderPositions(folders) {
 }
 
 function assignMissingNotePositions(notes, folders) {
-  // Build a map of folderIndex → count so we can compute angles
   const folderNoteCount = {}
   return notes.map(note => {
     if (note.canvasX != null) return note
@@ -99,14 +97,9 @@ function assignMissingNotePositions(notes, folders) {
         }
       }
     }
-    // Unfiled: scatter pseudo-randomly using hashed id
     const h1 = hashId(note.id)
     const h2 = hashId(note.id + 'y')
-    return {
-      ...note,
-      canvasX: 100 + h1 * 1300,
-      canvasY: 380 + h2 * 900,
-    }
+    return { ...note, canvasX: 100 + h1 * 1300, canvasY: 380 + h2 * 900 }
   })
 }
 
@@ -114,8 +107,7 @@ const CHECKBOX_RE = /^\[([ x])\]/
 
 function toggleAndReorderCheckbox(content, idx) {
   const lines = content.split('\n')
-  let count = 0
-  let targetLine = -1
+  let count = 0, targetLine = -1
   for (let i = 0; i < lines.length; i++) {
     if (CHECKBOX_RE.test(lines[i])) {
       if (count === idx) { targetLine = i; break }
@@ -146,8 +138,7 @@ export default function App() {
     const saved = loadNotes()
     if (saved.length > 0) return assignMissingNotePositions(saved, savedFolders)
     const welcome = createNote('Welcome to NoteCode')
-    welcome.canvasX = 400
-    welcome.canvasY = 300
+    welcome.canvasX = 500; welcome.canvasY = 350
     welcome.content = `# Welcome to NoteCode
 
 A terminal-inspired note-taking app powered by Markdown.
@@ -196,8 +187,9 @@ A terminal-inspired note-taking app powered by Markdown.
     return saved.length > 0 ? saved[0].id : null
   })
 
+  // 'canvas' | 'editor'
+  const [view, setView] = useState('canvas')
   const [mode, setMode] = useState('split')
-  const [canvasOpen, setCanvasOpen] = useState(true)
 
   const [fontSize, setFontSize] = useState(() => {
     const saved = parseInt(localStorage.getItem(FONT_SIZE_KEY), 10)
@@ -220,11 +212,19 @@ A terminal-inspired note-taking app powered by Markdown.
 
   const activeNote = notes.find(n => n.id === activeId) ?? null
 
+  // Select a note and open the editor view
+  const handleSelect = useCallback((id) => {
+    setActiveId(id)
+    setView('editor')
+  }, [])
+
+  // Create a new note and open it immediately in the editor
   const newNote = useCallback((pos) => {
     const note = createNote()
     if (pos) { note.canvasX = pos.x; note.canvasY = pos.y }
     setNotes(prev => [note, ...prev])
     setActiveId(note.id)
+    setView('editor')
     return note.id
   }, [])
 
@@ -233,7 +233,10 @@ A terminal-inspired note-taking app powered by Markdown.
       const note = prev.find(n => n.id === id)
       if (note) setTrash(t => [{ ...note, deletedAt: Date.now() }, ...t])
       const next = prev.filter(n => n.id !== id)
-      if (activeId === id) setActiveId(next.length > 0 ? next[0].id : null)
+      if (activeId === id) {
+        setActiveId(next.length > 0 ? next[0].id : null)
+        setView('canvas')
+      }
       return next
     })
   }, [activeId])
@@ -269,15 +272,14 @@ A terminal-inspired note-taking app powered by Markdown.
     if (!activeId) return
     setNotes(prev => prev.map(n => {
       if (n.id !== activeId) return n
-      const newContent = toggleAndReorderCheckbox(n.content, idx)
-      return { ...n, content: newContent, updatedAt: Date.now() }
+      return { ...n, content: toggleAndReorderCheckbox(n.content, idx), updatedAt: Date.now() }
     }))
   }, [activeId])
 
   const createFolder = useCallback((name, pos) => {
     const folder = { id: generateId(), name }
-    if (pos) { folder.canvasX = pos.x; folder.canvasY = pos.y }
-    else { folder.canvasX = 400; folder.canvasY = 300 }
+    folder.canvasX = pos?.x ?? 400
+    folder.canvasY = pos?.y ?? 300
     setFolders(prev => [...prev, folder])
   }, [])
 
@@ -308,7 +310,10 @@ A terminal-inspired note-taking app powered by Markdown.
         e.preventDefault()
         newNote()
       }
-      if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === 'Escape' && view === 'editor') {
+        setView('canvas')
+      }
+      if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey && view === 'editor') {
         const active = document.activeElement
         if (!active?.isContentEditable && active?.tagName !== 'INPUT' && active?.tagName !== 'TEXTAREA') {
           setMode(m => m === 'read' ? 'edit' : 'read')
@@ -317,104 +322,109 @@ A terminal-inspired note-taking app powered by Markdown.
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [newNote])
+  }, [newNote, view])
 
+  // ── Canvas view ─────────────────────────────────────────────────────────────
+  if (view === 'canvas') {
+    return (
+      <div className="app">
+        <NoteCanvas
+          notes={notes}
+          folders={folders}
+          activeId={activeId}
+          onSelect={handleSelect}
+          onNew={newNote}
+          onDelete={deleteNote}
+          onNoteMove={handleNoteMove}
+          onFolderMove={handleFolderMove}
+          onNoteFolder={moveNoteToFolder}
+          onFolderCreate={createFolder}
+          onFolderDelete={deleteFolder}
+          onFolderRename={renameFolder}
+          trash={trash}
+          onRestore={restoreNote}
+          onPermanentDelete={permanentDelete}
+          onEmptyTrash={emptyTrash}
+        />
+      </div>
+    )
+  }
+
+  // ── Editor view ─────────────────────────────────────────────────────────────
   return (
     <div className="app">
-      <header className="topbar">
+      <header className="editor-topbar">
         <button
-          className="icon-btn topbar-menu"
-          onClick={() => setCanvasOpen(o => !o)}
-          title="Toggle canvas"
-          aria-label="Toggle canvas"
+          className="editor-back-btn"
+          onClick={() => setView('canvas')}
+          title="Back to canvas (Esc)"
         >
-          <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="14" height="1.5" rx="0.75" fill="currentColor"/>
-            <rect y="5.25" width="10" height="1.5" rx="0.75" fill="currentColor"/>
-            <rect y="10.5" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+          <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+            <path d="M6 1L1 6L6 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
+          canvas
         </button>
-        <span className="topbar-title">
-          <span className="topbar-prompt">~/</span>NoteCode
+
+        <span className="editor-topbar-divider" />
+
+        <span className="editor-note-title">
+          {activeNote?.title || 'Untitled'}
         </span>
-        <span className="topbar-divider" />
-        <div className="topbar-actions">
+
+        <div className="editor-topbar-right">
           <div className="mode-switcher">
             <button className={`mode-btn${mode === 'edit'  ? ' active' : ''}`} onClick={() => setMode('edit')}  title="Editor only">edit</button>
             <button className={`mode-btn${mode === 'split' ? ' active' : ''}`} onClick={() => setMode('split')} title="Editor + Preview">split</button>
-            <button className={`mode-btn${mode === 'read'  ? ' active' : ''}`} onClick={() => setMode('read')}  title="Reader only  (R)">read</button>
+            <button className={`mode-btn${mode === 'read'  ? ' active' : ''}`} onClick={() => setMode('read')}  title="Reader only (R)">read</button>
           </div>
           <button className="icon-btn new-note-btn" onClick={() => newNote()} title="New note (Ctrl+N)">+ new</button>
         </div>
       </header>
 
-      <div className="workspace">
-        {canvasOpen && (
-          <NoteCanvas
-            notes={notes}
-            folders={folders}
-            activeId={activeId}
-            onSelect={setActiveId}
-            onNew={newNote}
-            onDelete={deleteNote}
-            onNoteMove={handleNoteMove}
-            onFolderMove={handleFolderMove}
-            onNoteFolder={moveNoteToFolder}
-            onFolderCreate={createFolder}
-            onFolderDelete={deleteFolder}
-            onFolderRename={renameFolder}
-            trash={trash}
-            onRestore={restoreNote}
-            onPermanentDelete={permanentDelete}
-            onEmptyTrash={emptyTrash}
-          />
+      <main
+        className="main-area"
+        style={{
+          fontSize: fontSize + 'px',
+          '--font-mono': FONT_OPTIONS.find(f => f.key === fontFamily)?.stack ?? 'inherit',
+        }}
+      >
+        {activeNote ? (
+          <>
+            {(mode === 'edit' || mode === 'split') && (
+              <Editor
+                note={activeNote}
+                onChange={(content) => updateNote(activeNote.id, { content })}
+                onTitleChange={(title) => updateNote(activeNote.id, { title })}
+                fontSize={fontSize}
+                fontFamily={fontFamily}
+                onFontSizeDecrease={decreaseFontSize}
+                onFontSizeIncrease={increaseFontSize}
+                onFontFamilyChange={setFontFamily}
+              />
+            )}
+            {mode === 'split' && (
+              <Preview
+                content={activeNote.content}
+                overlay
+                onClose={() => setMode('edit')}
+                onCheckboxToggle={handleCheckboxToggle}
+              />
+            )}
+            {mode === 'read' && (
+              <Preview
+                content={activeNote.content}
+                onCheckboxToggle={handleCheckboxToggle}
+              />
+            )}
+          </>
+        ) : (
+          <div className="empty-state">
+            <p className="empty-prompt">$ <span className="cursor">_</span></p>
+            <p>No note selected.</p>
+            <button className="btn-primary" onClick={() => setView('canvas')}>← Back to canvas</button>
+          </div>
         )}
-
-        <main
-          className="main-area"
-          style={{
-            fontSize: fontSize + 'px',
-            '--font-mono': FONT_OPTIONS.find(f => f.key === fontFamily)?.stack ?? 'inherit',
-          }}
-        >
-          {activeNote ? (
-            <>
-              {(mode === 'edit' || mode === 'split') && (
-                <Editor
-                  note={activeNote}
-                  onChange={(content) => updateNote(activeNote.id, { content })}
-                  onTitleChange={(title) => updateNote(activeNote.id, { title })}
-                  fontSize={fontSize}
-                  fontFamily={fontFamily}
-                  onFontSizeDecrease={decreaseFontSize}
-                  onFontSizeIncrease={increaseFontSize}
-                  onFontFamilyChange={setFontFamily}
-                />
-              )}
-              {mode === 'split' && (
-                <Preview
-                  content={activeNote.content}
-                  overlay
-                  onClose={() => setMode('edit')}
-                  onCheckboxToggle={handleCheckboxToggle}
-                />
-              )}
-              {mode === 'read' && (
-                <Preview
-                  content={activeNote.content}
-                  onCheckboxToggle={handleCheckboxToggle}
-                />
-              )}
-            </>
-          ) : (
-            <div className="empty-state">
-              <p className="empty-prompt">$ <span className="cursor">_</span></p>
-              <p>No note selected.</p>
-              <button className="btn-primary" onClick={() => newNote()}>+ Create your first note</button>
-            </div>
-          )}
-        </main>
-      </div>
+      </main>
     </div>
   )
 }

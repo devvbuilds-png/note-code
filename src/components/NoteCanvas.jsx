@@ -8,7 +8,7 @@ function loadViewport() {
     const raw = localStorage.getItem(CANVAS_VP_KEY)
     if (raw) return JSON.parse(raw)
   } catch {}
-  return { panX: 60, panY: 60, zoom: 1 }
+  return { panX: 80, panY: 80, zoom: 1 }
 }
 
 function saveViewport(vp) {
@@ -25,43 +25,31 @@ function zoomAt(panX, panY, zoom, delta, mx, my) {
 // ── Fan-out positions ─────────────────────────────────────────────────────────
 function computeFanPositions(fx, fy, count) {
   if (count === 0) return []
-  const r = 140 + count * 14
+  const r = 160 + count * 16
   return Array.from({ length: count }, (_, i) => ({
     x: fx + Math.cos(-Math.PI / 2 + i * (2 * Math.PI) / count) * r,
     y: fy + Math.sin(-Math.PI / 2 + i * (2 * Math.PI) / count) * r,
   }))
 }
 
-// ── Screen ↔ canvas coordinate helpers ───────────────────────────────────────
-function screenToCanvas(sx, sy, panX, panY, zoom) {
-  return { x: (sx - panX) / zoom, y: (sy - panY) / zoom }
-}
-
-function canvasToScreen(cx, cy, panX, panY, zoom) {
-  return { x: cx * zoom + panX, y: cy * zoom + panY }
-}
-
 // ── FolderNode ────────────────────────────────────────────────────────────────
-function FolderNode({ folder, isExpanded, isDropTarget, isDragging, noteCount, onPointerDown, onDoubleClick, renamingId, renameName, onRenameChange, onRenameBlur, onRenameKeyDown, onDelete }) {
-  const sx = folder.canvasX
-  const sy = folder.canvasY
+function FolderNode({ folder, isExpanded, isDropTarget, isDragging, noteCount, onDoubleClick, renamingId, renameName, onRenameChange, onRenameBlur, onRenameKeyDown, onDelete }) {
   return (
     <div
       className={[
         'canvas-folder',
-        isExpanded  ? 'expanded'    : '',
+        isExpanded   ? 'expanded'    : '',
         isDropTarget ? 'drop-target' : '',
-        isDragging  ? 'dragging'    : '',
+        isDragging   ? 'dragging'    : '',
       ].filter(Boolean).join(' ')}
       data-folder-id={folder.id}
-      style={{ left: sx, top: sy }}
-      onPointerDown={onPointerDown}
+      style={{ left: folder.canvasX, top: folder.canvasY }}
       onDoubleClick={onDoubleClick}
     >
       <div className="canvas-folder-icon">
-        <svg width="14" height="12" viewBox="0 0 14 12" fill="none">
-          <path d="M0 2C0 0.9 0.9 0 2 0H5.5L7 1.5H12C13.1 1.5 14 2.4 14 3.5V10C14 11.1 13.1 12 12 12H2C0.9 12 0 11.1 0 10V2Z" fill="currentColor" opacity=".25"/>
-          <path d="M0 3.5C0 2.4 0.9 1.5 2 1.5H12C13.1 1.5 14 2.4 14 3.5V10C14 11.1 13.1 12 12 12H2C0.9 12 0 11.1 0 10V3.5Z" stroke="currentColor" strokeWidth="1" fill="none" opacity=".6"/>
+        <svg width="16" height="13" viewBox="0 0 14 12" fill="none">
+          <path d="M0 2C0 0.9 0.9 0 2 0H5.5L7 1.5H12C13.1 1.5 14 2.4 14 3.5V10C14 11.1 13.1 12 12 12H2C0.9 12 0 11.1 0 10V2Z" fill="currentColor" opacity=".3"/>
+          <path d="M0 3.5C0 2.4 0.9 1.5 2 1.5H12C13.1 1.5 14 2.4 14 3.5V10C14 11.1 13.1 12 12 12H2C0.9 12 0 11.1 0 10V3.5Z" stroke="currentColor" strokeWidth="1" fill="none" opacity=".7"/>
         </svg>
       </div>
       {renamingId === folder.id ? (
@@ -77,7 +65,7 @@ function FolderNode({ folder, isExpanded, isDropTarget, isDragging, noteCount, o
       ) : (
         <span className="canvas-folder-name">{folder.name}</span>
       )}
-      <span className="canvas-folder-count">{noteCount}</span>
+      <span className="canvas-folder-count">{noteCount} note{noteCount !== 1 ? 's' : ''}</span>
       <button
         className="canvas-folder-delete"
         onPointerDown={e => e.stopPropagation()}
@@ -89,19 +77,19 @@ function FolderNode({ folder, isExpanded, isDropTarget, isDragging, noteCount, o
 }
 
 // ── NoteNode ──────────────────────────────────────────────────────────────────
-function NoteNode({ note, displayX, displayY, isActive, isDragging, isFanning, onPointerDown, onDelete }) {
+function NoteNode({ note, displayX, displayY, isActive, isDragging, isFanning, onDelete }) {
   return (
     <div
       className={[
         'canvas-note',
-        isActive  ? 'active'   : '',
+        isActive   ? 'active'   : '',
         isDragging ? 'dragging' : '',
         isFanning  ? 'fanning'  : '',
       ].filter(Boolean).join(' ')}
       data-note-id={note.id}
       style={{ left: displayX, top: displayY }}
-      onPointerDown={onPointerDown}
     >
+      <div className="canvas-note-dot" />
       <span className="canvas-note-label">{note.title || 'Untitled'}</span>
       <button
         className="canvas-note-delete"
@@ -121,9 +109,7 @@ function TrashPanel({ trash, onRestore, onPermanentDelete, onEmptyTrash, onClose
         <span className="canvas-trash-title">Trash ({trash.length})</span>
         <div style={{ display: 'flex', gap: 8 }}>
           {trash.length > 0 && (
-            <button className="canvas-trash-empty" onClick={onEmptyTrash}>
-              Empty trash
-            </button>
+            <button className="canvas-trash-empty" onClick={onEmptyTrash}>Empty trash</button>
           )}
           <button className="canvas-trash-close" onClick={onClose}>✕</button>
         </div>
@@ -161,38 +147,32 @@ export default function NoteCanvas({
   const [panY, setPanY] = useState(vp0.panY)
   const [zoom, setZoom] = useState(vp0.zoom)
 
-  const [dragState, setDragState]       = useState(null)
+  const [dragState, setDragState]             = useState(null)
   const [expandedFolders, setExpandedFolders] = useState(new Set())
-  const [hoveredId, setHoveredId]       = useState(null)
-  const [dropTargetId, setDropTargetId] = useState(null)
+  const [dropTargetId, setDropTargetId]       = useState(null)
   const [renamingFolderId, setRenamingFolderId] = useState(null)
-  const [renameName, setRenameName]     = useState('')
-  const [trashOpen, setTrashOpen]       = useState(false)
-  const [search, setSearch]             = useState('')
-  const [newFolderName, setNewFolderName] = useState('')
+  const [renameName, setRenameName]           = useState('')
+  const [trashOpen, setTrashOpen]             = useState(false)
+  const [search, setSearch]                   = useState('')
+  const [newFolderName, setNewFolderName]     = useState('')
   const [showFolderInput, setShowFolderInput] = useState(false)
 
   const viewportRef = useRef()
-  const dragRef     = useRef(dragState) // keep a mutable ref for pointer handlers
-
-  // keep dragRef in sync
+  const dragRef     = useRef(dragState)
   useEffect(() => { dragRef.current = dragState }, [dragState])
 
   // persist viewport
   useEffect(() => { saveViewport({ panX, panY, zoom }) }, [panX, panY, zoom])
 
-  // non-passive wheel
+  // non-passive wheel for zoom
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
     function onWheel(e) {
       e.preventDefault()
       const rect = el.getBoundingClientRect()
-      const mx = e.clientX - rect.left
-      const my = e.clientY - rect.top
-      const next = zoomAt(panX, panY, zoom, e.deltaY, mx, my)
+      const next = zoomAt(panX, panY, zoom, e.deltaY, e.clientX - rect.left, e.clientY - rect.top)
       setPanX(next.panX); setPanY(next.panY); setZoom(next.zoom)
-      // update grid bg offset
       el.style.setProperty('--pan-x', next.panX)
       el.style.setProperty('--pan-y', next.panY)
     }
@@ -200,7 +180,7 @@ export default function NoteCanvas({
     return () => el.removeEventListener('wheel', onWheel)
   })
 
-  // sync grid bg offset on pan/zoom changes
+  // sync grid offset
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
@@ -221,17 +201,15 @@ export default function NoteCanvas({
       const note   = notes.find(n => n.id === noteId)
       if (!note) return
 
-      // Current display position (may be fan position)
-      const folderExpanded = note.folder && expandedFolders.has(note.folder)
-      let startItemX = note.canvasX
-      let startItemY = note.canvasY
-      if (folderExpanded) {
-        const folder = folders.find(f => f.id === note.folder)
+      // Determine display position (fan or stored)
+      let startItemX = note.canvasX, startItemY = note.canvasY
+      if (note.folder && expandedFolders.has(note.folder)) {
+        const folder   = folders.find(f => f.id === note.folder)
         if (folder) {
           const siblings = notes.filter(n => n.folder === note.folder)
-          const idx = siblings.findIndex(n => n.id === noteId)
-          const fanPositions = computeFanPositions(folder.canvasX, folder.canvasY, siblings.length)
-          if (fanPositions[idx]) { startItemX = fanPositions[idx].x; startItemY = fanPositions[idx].y }
+          const idx      = siblings.findIndex(n => n.id === noteId)
+          const fanPos   = computeFanPositions(folder.canvasX, folder.canvasY, siblings.length)
+          if (fanPos[idx]) { startItemX = fanPos[idx].x; startItemY = fanPos[idx].y }
         }
       }
 
@@ -275,27 +253,24 @@ export default function NoteCanvas({
     if (!d) return
 
     if (d.type === 'pan') {
-      const nx = d.startPanX + (e.clientX - d.startClientX)
-      const ny = d.startPanY + (e.clientY - d.startClientY)
-      setPanX(nx); setPanY(ny)
+      setPanX(d.startPanX + (e.clientX - d.startClientX))
+      setPanY(d.startPanY + (e.clientY - d.startClientY))
       return
     }
 
     if (d.type === 'item') {
       const dx = e.clientX - d.startClientX
       const dy = e.clientY - d.startClientY
-      if (!d.hasMoved && Math.hypot(dx, dy) < 4) return
+      if (!d.hasMoved && Math.hypot(dx, dy) < 5) return
 
       const newX = d.startItemX + dx / zoom
       const newY = d.startItemY + dy / zoom
-
       setDragState(prev => ({ ...prev, liveX: newX, liveY: newY, hasMoved: true }))
 
       if (d.kind === 'note') {
-        // detect folder drop target
         const hit = folders.find(f =>
-          newX >= f.canvasX - 84 && newX <= f.canvasX + 84 &&
-          newY >= f.canvasY - 44 && newY <= f.canvasY + 44
+          newX >= f.canvasX - 90 && newX <= f.canvasX + 90 &&
+          newY >= f.canvasY - 46 && newY <= f.canvasY + 46
         )
         setDropTargetId(hit ? hit.id : null)
       }
@@ -319,9 +294,8 @@ export default function NoteCanvas({
         onFolderMove(d.id, { x: d.liveX, y: d.liveY })
       }
     } else if (d.type === 'item' && !d.hasMoved) {
-      // click
       if (d.kind === 'note') {
-        onSelect(d.id)
+        onSelect(d.id) // parent switches to editor view
       } else if (d.kind === 'folder') {
         setExpandedFolders(prev => {
           const next = new Set(prev)
@@ -334,51 +308,37 @@ export default function NoteCanvas({
 
     setDragState(null)
     setDropTargetId(null)
-  }, [notes, folders, dropTargetId, onNoteMove, onFolderMove, onNoteFolder, onSelect])
+  }, [notes, dropTargetId, onNoteMove, onFolderMove, onNoteFolder, onSelect])
 
-  // ── Create new note at canvas center ─────────────────────────────────────
+  // ── New note at canvas center ─────────────────────────────────────────────
   const handleNewNote = useCallback(() => {
     const el = viewportRef.current
     if (!el) { onNew(); return }
     const rect = el.getBoundingClientRect()
-    const cx = (rect.width  / 2 - panX) / zoom
-    const cy = (rect.height / 2 - panY) / zoom
-    onNew({ x: cx, y: cy })
+    onNew({ x: (rect.width / 2 - panX) / zoom, y: (rect.height / 2 - panY) / zoom })
   }, [panX, panY, zoom, onNew])
 
-  // ── Create folder at canvas center ────────────────────────────────────────
+  // ── New folder at canvas center ───────────────────────────────────────────
   const handleCreateFolder = useCallback(() => {
     const name = newFolderName.trim() || 'New Folder'
-    const el = viewportRef.current
-    let cx = 400, cy = 300
-    if (el) {
-      const rect = el.getBoundingClientRect()
-      cx = (rect.width  / 2 - panX) / zoom
-      cy = (rect.height / 2 - panY) / zoom
-    }
+    const el   = viewportRef.current
+    const cx   = el ? (el.getBoundingClientRect().width  / 2 - panX) / zoom : 400
+    const cy   = el ? (el.getBoundingClientRect().height / 2 - panY) / zoom : 300
     onFolderCreate(name, { x: cx, y: cy })
-    setNewFolderName('')
-    setShowFolderInput(false)
+    setNewFolderName(''); setShowFolderInput(false)
   }, [newFolderName, panX, panY, zoom, onFolderCreate])
 
-  // ── Reset viewport ────────────────────────────────────────────────────────
-  const resetViewport = useCallback(() => {
-    setPanX(60); setPanY(60); setZoom(1)
-  }, [])
+  const resetViewport = useCallback(() => { setPanX(80); setPanY(80); setZoom(1) }, [])
 
   // ── Filter notes ──────────────────────────────────────────────────────────
   const q = search.toLowerCase().trim()
   const visibleNotes = q
-    ? notes.filter(n =>
-        n.title.toLowerCase().includes(q) ||
-        n.content.toLowerCase().includes(q)
-      )
+    ? notes.filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
     : notes
 
-  // ── Build display positions ───────────────────────────────────────────────
-  // For each note, compute where it actually renders (fan or stored)
-  const noteDisplayPos = {}
-  const fanningNoteIds = new Set()
+  // ── Ephemeral fan positions ───────────────────────────────────────────────
+  const noteDisplayPos  = {}
+  const fanningNoteIds  = new Set()
 
   for (const folder of folders) {
     if (expandedFolders.has(folder.id)) {
@@ -391,15 +351,24 @@ export default function NoteCanvas({
     }
   }
 
-  // ── Current drag live positions ───────────────────────────────────────────
   const draggingNoteId   = dragState?.kind === 'note'   ? dragState.id : null
   const draggingFolderId = dragState?.kind === 'folder' ? dragState.id : null
+  const isPanning        = dragState?.type === 'pan'
 
-  const isPanning = dragState?.type === 'pan'
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="canvas-panel">
+    <div className="canvas-screen">
+      {/* Canvas header */}
+      <header className="canvas-header">
+        <span className="canvas-header-title">
+          <span className="canvas-header-prompt">~/</span>NoteCode
+        </span>
+        <span className="canvas-header-sub">
+          {notes.length} note{notes.length !== 1 ? 's' : ''}
+          {folders.length > 0 && ` · ${folders.length} folder${folders.length !== 1 ? 's' : ''}`}
+        </span>
+      </header>
+
+      {/* The actual canvas */}
       <div
         ref={viewportRef}
         className={`canvas-viewport${isPanning ? ' panning' : ''}`}
@@ -415,19 +384,17 @@ export default function NoteCanvas({
           {/* Folders */}
           {folders.map(folder => {
             const isDragging = folder.id === draggingFolderId
-            const cx = isDragging ? dragState.liveX : folder.canvasX
-            const cy = isDragging ? dragState.liveY : folder.canvasY
-            const folderWithLive = { ...folder, canvasX: cx, canvasY: cy }
-            const noteCount = notes.filter(n => n.folder === folder.id).length
+            const liveFolder = isDragging
+              ? { ...folder, canvasX: dragState.liveX, canvasY: dragState.liveY }
+              : folder
             return (
               <FolderNode
                 key={folder.id}
-                folder={folderWithLive}
+                folder={liveFolder}
                 isExpanded={expandedFolders.has(folder.id)}
                 isDropTarget={dropTargetId === folder.id}
                 isDragging={isDragging}
-                noteCount={noteCount}
-                onPointerDown={e => {}} // handled by viewport
+                noteCount={notes.filter(n => n.folder === folder.id).length}
                 onDoubleClick={e => {
                   e.stopPropagation()
                   setRenamingFolderId(folder.id)
@@ -472,7 +439,6 @@ export default function NoteCanvas({
                 isActive={note.id === activeId}
                 isDragging={isDragging}
                 isFanning={fanningNoteIds.has(note.id) && !isDragging}
-                onPointerDown={e => {}} // handled by viewport
                 onDelete={onDelete}
               />
             )
@@ -508,12 +474,11 @@ export default function NoteCanvas({
             <button type="submit" className="canvas-tb-btn">ok</button>
           </form>
         ) : (
-          <button className="canvas-tb-btn" onClick={() => setShowFolderInput(true)} title="New folder">+ folder</button>
+          <button className="canvas-tb-btn" onClick={() => setShowFolderInput(true)}>+ folder</button>
         )}
         <button
           className={`canvas-tb-btn canvas-tb-trash${trash.length > 0 ? ' has-items' : ''}`}
           onClick={() => setTrashOpen(o => !o)}
-          title="Trash"
         >
           {trash.length > 0 ? `trash (${trash.length})` : 'trash'}
         </button>

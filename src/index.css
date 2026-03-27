@@ -90,8 +90,56 @@ input, textarea {
   overflow: hidden;
 }
 
-/* ── Topbar ──────────────────────────────────────── */
-.topbar {
+/* ── Canvas screen (full-screen view) ────────────── */
+.canvas-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Canvas header ───────────────────────────────── */
+.canvas-header {
+  height: var(--topbar-h);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  flex-shrink: 0;
+  user-select: none;
+  position: relative;
+  z-index: 20;
+}
+.canvas-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--text-cyan) 35%, transparent 65%);
+  opacity: 0.35;
+  pointer-events: none;
+}
+.canvas-header-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+}
+.canvas-header-prompt {
+  color: var(--accent-soft);
+  font-weight: 400;
+}
+.canvas-header-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+/* ── Editor screen topbar ────────────────────────── */
+.editor-topbar {
   height: var(--topbar-h);
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
@@ -104,62 +152,59 @@ input, textarea {
   position: relative;
   z-index: 20;
 }
-
-.topbar::after {
+.editor-topbar::after {
   content: '';
   position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 1px;
+  bottom: -1px; left: 0; right: 0; height: 1px;
   background: linear-gradient(90deg, var(--accent) 0%, var(--text-cyan) 35%, transparent 65%);
   opacity: 0.35;
   pointer-events: none;
 }
 
-.topbar-menu {
-  width: 30px;
-  height: 30px;
+.editor-back-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  font-size: 14px;
-  transition: color 0.15s, background 0.15s, border-color 0.15s;
-  flex-shrink: 0;
-}
-.topbar-menu:hover {
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
   color: var(--text-secondary);
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   background: var(--bg-elevated);
-  border-color: var(--border);
-}
-
-.topbar-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-primary);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
   letter-spacing: 0.04em;
   flex-shrink: 0;
 }
-.topbar-prompt {
+.editor-back-btn:hover {
   color: var(--accent-soft);
-  font-weight: 400;
+  border-color: var(--border-focus);
+  background: var(--bg-hover);
 }
 
-.topbar-divider {
+.editor-topbar-divider {
   width: 1px;
   height: 16px;
   background: var(--border);
   flex-shrink: 0;
 }
 
-.topbar-actions {
+.editor-note-title {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  letter-spacing: 0.02em;
+}
+
+.editor-topbar-right {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 /* Mode switcher */
@@ -278,7 +323,7 @@ input, textarea {
   color: var(--text-primary);
 }
 
-/* ── Workspace ───────────────────────────────────── */
+/* ── Workspace (editor view only) ───────────────── */
 .workspace {
   display: flex;
   flex: 1;
@@ -286,19 +331,10 @@ input, textarea {
 }
 
 
-/* ── Canvas Panel ────────────────────────────────── */
-.canvas-panel {
-  width: var(--canvas-w);
-  flex-shrink: 0;
-  position: relative;
-  overflow: hidden;
-  background: var(--bg-base);
-  border-right: 1px solid var(--border);
-}
-
+/* ── Canvas Viewport (fills canvas-screen below header) ── */
 .canvas-viewport {
-  position: absolute;
-  inset: 0;
+  flex: 1;
+  position: relative;
   overflow: hidden;
   cursor: grab;
   background-image: radial-gradient(circle, var(--border-subtle) 1px, transparent 1px);
@@ -409,65 +445,79 @@ input, textarea {
 .canvas-note {
   position: absolute;
   transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
-  transition: transform 0.12s, background 0.12s, box-shadow 0.12s;
   z-index: 10;
 }
-.canvas-note:hover {
+
+.canvas-note-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
   background: var(--text-secondary);
-  transform: translate(-50%, -50%) scale(1.8);
-  box-shadow: 0 0 8px rgba(125,149,192,0.35);
-  z-index: 20;
+  box-shadow: 0 0 0 3px rgba(125,149,192,0.12);
+  transition: transform 0.14s, background 0.14s, box-shadow 0.14s;
+  flex-shrink: 0;
 }
-.canvas-note.active {
+.canvas-note:hover .canvas-note-dot {
+  background: var(--text-primary);
+  box-shadow: 0 0 0 4px rgba(226,236,255,0.15), 0 0 16px rgba(226,236,255,0.2);
+  transform: scale(1.35);
+}
+.canvas-note.active .canvas-note-dot {
   background: var(--accent-soft);
-  box-shadow: 0 0 0 3px var(--accent-glow), 0 0 14px var(--accent);
-  z-index: 20;
+  box-shadow: 0 0 0 4px var(--accent-glow), 0 0 20px var(--accent), 0 0 40px rgba(139,92,246,0.25);
+  transform: scale(1.2);
 }
-.canvas-note.active:hover {
-  transform: translate(-50%, -50%) scale(1.8);
+.canvas-note.active:hover .canvas-note-dot {
+  transform: scale(1.45);
 }
 .canvas-note.dragging {
   cursor: grabbing;
   z-index: 100;
-  transform: translate(-50%, -50%) scale(1.5);
+}
+.canvas-note.dragging .canvas-note-dot {
+  transform: scale(1.5);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.7);
 }
 
 .canvas-note-label {
-  position: absolute;
-  left: 50%;
-  top: 14px;
-  transform: translateX(-50%);
   white-space: nowrap;
-  font-size: 10px;
-  color: var(--text-secondary);
+  font-size: 11px;
+  color: var(--text-muted);
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-  max-width: 130px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: rgba(7,9,18,0.8);
-  padding: 1px 5px;
-  border-radius: 3px;
+  background: rgba(7,9,18,0.75);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  transition: color 0.14s, border-color 0.14s;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
 }
-.canvas-note:hover .canvas-note-label,
+.canvas-note:hover .canvas-note-label {
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
 .canvas-note.active .canvas-note-label {
-  opacity: 1;
+  color: var(--accent-soft);
+  border-color: rgba(139,92,246,0.3);
+  background: rgba(139,92,246,0.08);
 }
 
 .canvas-note-delete {
   position: absolute;
-  top: -14px;
-  right: -14px;
-  font-size: 11px;
+  top: -8px;
+  right: -16px;
+  font-size: 12px;
   color: var(--text-muted);
   line-height: 1;
-  padding: 2px 3px;
+  padding: 2px 4px;
   border-radius: 3px;
   opacity: 0;
   transition: opacity 0.12s, color 0.12s;
