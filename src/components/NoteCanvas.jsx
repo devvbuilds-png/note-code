@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 
 // ── Viewport persistence ──────────────────────────────────────────────────────
 const CANVAS_VP_KEY = 'notecode_canvas'
@@ -133,6 +133,108 @@ function TrashPanel({ trash, onRestore, onPermanentDelete, onEmptyTrash, onClose
   )
 }
 
+// ── CanvasSidebar ─────────────────────────────────────────────────────────────
+function CanvasSidebar({ notes, folders, activeId, onSelect, onDelete }) {
+  const [expanded, setExpanded]   = useState(() => new Set(folders.map(f => f.id)))
+  const [sbSearch, setSbSearch]   = useState('')
+
+  const toggle = (id) => setExpanded(prev => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
+
+  const q = sbSearch.toLowerCase().trim()
+  const filtered = useMemo(() =>
+    q ? notes.filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
+      : notes,
+    [notes, q]
+  )
+
+  const unfiledNotes   = filtered.filter(n => !n.folder)
+  const folderHasMatch = (fid) => filtered.some(n => n.folder === fid)
+
+  return (
+    <div className="csb">
+      <div className="csb-search-wrap">
+        <input
+          className="csb-search"
+          placeholder="search…"
+          value={sbSearch}
+          onChange={e => setSbSearch(e.target.value)}
+        />
+        {sbSearch && (
+          <button className="csb-search-clear" onClick={() => setSbSearch('')}>×</button>
+        )}
+      </div>
+
+      <div className="csb-list">
+        {folders.map(folder => {
+          const folderNotes = filtered.filter(n => n.folder === folder.id)
+          if (q && !folderHasMatch(folder.id)) return null
+          const isOpen = expanded.has(folder.id)
+          return (
+            <div key={folder.id} className="csb-folder-group">
+              <button
+                className="csb-folder-row"
+                onClick={() => toggle(folder.id)}
+              >
+                <span className={`csb-arrow${isOpen ? ' open' : ''}`}>▸</span>
+                <svg className="csb-folder-icon" width="13" height="11" viewBox="0 0 14 12" fill="none">
+                  <path d="M0 3.5C0 2.4 0.9 1.5 2 1.5H12C13.1 1.5 14 2.4 14 3.5V10C14 11.1 13.1 12 12 12H2C0.9 12 0 11.1 0 10V3.5Z" fill="currentColor" opacity=".15"/>
+                  <path d="M0 3.5C0 2.4 0.9 1.5 2 1.5H12C13.1 1.5 14 2.4 14 3.5V10C14 11.1 13.1 12 12 12H2C0.9 12 0 11.1 0 10V3.5Z" stroke="currentColor" strokeWidth="1" fill="none" opacity=".5"/>
+                </svg>
+                <span className="csb-folder-name">{folder.name}</span>
+                <span className="csb-folder-count">{notes.filter(n => n.folder === folder.id).length}</span>
+              </button>
+              {isOpen && folderNotes.map(note => (
+                <div
+                  key={note.id}
+                  className={`csb-note${note.id === activeId ? ' active' : ''}`}
+                  onClick={() => onSelect(note.id)}
+                >
+                  <span className="csb-note-dot" />
+                  <span className="csb-note-title">{note.title || 'Untitled'}</span>
+                  <button
+                    className="csb-note-del"
+                    onClick={e => { e.stopPropagation(); onDelete(note.id) }}
+                    title="Delete"
+                  >×</button>
+                </div>
+              ))}
+            </div>
+          )
+        })}
+
+        {unfiledNotes.length > 0 && (
+          <div className="csb-unfiled-group">
+            {folders.length > 0 && <div className="csb-section-label">unfiled</div>}
+            {unfiledNotes.map(note => (
+              <div
+                key={note.id}
+                className={`csb-note${note.id === activeId ? ' active' : ''}`}
+                onClick={() => onSelect(note.id)}
+              >
+                <span className="csb-note-dot" />
+                <span className="csb-note-title">{note.title || 'Untitled'}</span>
+                <button
+                  className="csb-note-del"
+                  onClick={e => { e.stopPropagation(); onDelete(note.id) }}
+                  title="Delete"
+                >×</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {filtered.length === 0 && (
+          <p className="csb-empty">No notes found.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main NoteCanvas ───────────────────────────────────────────────────────────
 export default function NoteCanvas({
   notes, folders, activeId,
@@ -153,6 +255,7 @@ export default function NoteCanvas({
   const [renamingFolderId, setRenamingFolderId] = useState(null)
   const [renameName, setRenameName]           = useState('')
   const [trashOpen, setTrashOpen]             = useState(false)
+  const [sidebarOpen, setSidebarOpen]         = useState(false)
   const [search, setSearch]                   = useState('')
   const [newFolderName, setNewFolderName]     = useState('')
   const [showFolderInput, setShowFolderInput] = useState(false)
@@ -372,6 +475,17 @@ export default function NoteCanvas({
     <div className="canvas-screen">
       {/* Canvas header */}
       <header className="canvas-header">
+        <button
+          className={`canvas-sidebar-toggle${sidebarOpen ? ' active' : ''}`}
+          onClick={() => setSidebarOpen(o => !o)}
+          title={sidebarOpen ? 'Hide list' : 'Show list'}
+        >
+          <svg width="14" height="12" viewBox="0 0 14 12" fill="none">
+            <rect width="14" height="1.5" rx="0.75" fill="currentColor"/>
+            <rect y="5.25" width="10" height="1.5" rx="0.75" fill="currentColor"/>
+            <rect y="10.5" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+          </svg>
+        </button>
         <span className="canvas-header-title">
           <span className="canvas-header-prompt">~/</span>NoteCode
         </span>
@@ -381,15 +495,27 @@ export default function NoteCanvas({
         </span>
       </header>
 
-      {/* The actual canvas */}
-      <div
-        ref={viewportRef}
-        className={`canvas-viewport${isPanning ? ' panning' : ''}`}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-      >
+      {/* Body = optional sidebar + canvas */}
+      <div className="canvas-body">
+        {sidebarOpen && (
+          <CanvasSidebar
+            notes={notes}
+            folders={folders}
+            activeId={activeId}
+            onSelect={onSelect}
+            onDelete={onDelete}
+          />
+        )}
+
+        {/* The actual canvas */}
+        <div
+          ref={viewportRef}
+          className={`canvas-viewport${isPanning ? ' panning' : ''}`}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+        >
         <div
           className="canvas-world"
           style={{ transform: `translate(${panX}px,${panY}px) scale(${zoom})` }}
@@ -456,6 +582,7 @@ export default function NoteCanvas({
               />
             )
           })}
+        </div>
         </div>
       </div>
 

@@ -367,9 +367,17 @@ A terminal-inspired note-taking app powered by Markdown.
 
         <span className="editor-topbar-divider" />
 
-        <span className="editor-note-title">
-          {activeNote?.title || 'Untitled'}
-        </span>
+        <div className="editor-note-info">
+          <span className="editor-note-title">
+            {activeNote?.title || 'Untitled'}
+          </span>
+          {activeNote?.folder && (() => {
+            const folderName = folders.find(f => f.id === activeNote.folder)?.name
+            return folderName ? (
+              <span className="editor-note-folder">in {folderName}</span>
+            ) : null
+          })()}
+        </div>
 
         <div className="editor-topbar-right">
           <div className="mode-switcher">
