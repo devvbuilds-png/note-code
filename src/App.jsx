@@ -141,38 +141,88 @@ export default function App() {
     welcome.canvasX = 500; welcome.canvasY = 350
     welcome.content = `# Welcome to NoteCode
 
-A terminal-inspired note-taking app powered by Markdown.
+A terminal-inspired note-taking app with a spatial canvas and Markdown editing.
 
-## Three Modes
+---
 
-- Editor  — write and edit your notes in raw Markdown
-- Editor + Reader — write while reading your notes in clean, formatted view.
-- Reader - Read and reflect on your notes.
+## The Canvas
 
-> Toggle from the top right corner
+Your notes live on a freeform canvas. Each note is a **glowing dot** with its title visible beneath it. Folders appear as **cards**.
 
+**Navigating the canvas**
+- **Pan** — drag anywhere on the empty background
+- **Zoom** — scroll wheel (pivots at your cursor)
+- **Reset** — click ⌖ in the toolbar at the bottom
 
-## Features
+**Notes**
+- **Click a dot** → opens the note in the editor
+- **Drag a dot** → move it anywhere on the canvas
+- **Drop onto a folder card** → assigns the note to that folder
+- **Delete** → hover the dot and click ×
 
-  • Live Markdown preview
-  • Syntax highlighting for code blocks
-  • Search across all notes
-  • Stored locally in your browser
+**Folders**
+- **Click a folder card** → fan-out: notes inside orbit around it
+- **Click again** → collapse the fan
+- **Drag a fanned note beyond the circle** → removes it from the folder
+- **Drag a fanned note onto another folder** → moves it there
+- **Double-click a folder card** → rename it inline
+- **Drag the folder card itself** → reposition it
 
+**Toolbar** (bottom of canvas)
+- \`+ note\` — creates a note at the canvas center
+- \`+ folder\` — type a name and press Enter
+- \`trash\` — view and restore deleted notes
+- Search box — filters note labels live
+
+---
+
+## List Sidebar
+
+Click the **☰ hamburger** in the top-left to open a classic list view alongside the canvas. It shows all folders and notes in a collapsible tree with search. Click any note to open it. Close the sidebar to get the full canvas back.
+
+---
+
+## The Editor
+
+Clicking a note dot opens the full-screen editor. At the top:
+- **← canvas** button (or press \`Esc\`) — go back to the canvas
+- **edit / split / read** — switch between writing, split preview, and read-only mode
+- The folder the note belongs to is shown as \`in FolderName\` beneath the title
+
+### Three Modes
+
+- **edit** — raw Markdown, full focus
+- **split** — editor on the left, rendered preview on the right
+- **read** — clean rendered view, no distractions
+
+> Press \`R\` anywhere in the editor to toggle read mode
+
+---
 
 ## Markdown Cheatsheet
 
 **bold** → bold
 *italic* → italic
 \`inline code\` → inline code
-# Heading → large heading
-## Heading 2 → medium heading
-> blockquote     → indented quote block
-- item           → bullet list
-1. item          → numbered list
-\`\`\`code\`\`\`         → syntax-highlighted code block
-[text](url)      → clickable link
+# Heading 1
+## Heading 2
+> blockquote
+- bullet list
+1. numbered list
+\`\`\`js
+code block with syntax highlighting
+\`\`\`
+[link text](url)
+- [ ] task checkbox
+- [x] completed checkbox
 
+---
+
+## Tips
+
+- All notes, folders, and canvas positions are saved automatically in your browser
+- \`Ctrl+N\` creates a new note from anywhere
+- Checked checkboxes automatically float to the top of their list
 `
     return [welcome]
   })
