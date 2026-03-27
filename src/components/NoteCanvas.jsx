@@ -255,7 +255,7 @@ export default function NoteCanvas({
   const [renamingFolderId, setRenamingFolderId] = useState(null)
   const [renameName, setRenameName]           = useState('')
   const [trashOpen, setTrashOpen]             = useState(false)
-  const [sidebarOpen, setSidebarOpen]         = useState(false)
+  const [sidebarOpen, setSidebarOpen]         = useState(true)
   const [search, setSearch]                   = useState('')
   const [newFolderName, setNewFolderName]     = useState('')
   const [showFolderInput, setShowFolderInput] = useState(false)
