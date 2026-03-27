@@ -283,11 +283,10 @@ export default function NoteCanvas({
 
     if (d.type === 'item' && d.hasMoved) {
       if (d.kind === 'note') {
-        const note = notes.find(n => n.id === d.id)
+        // Only assign to a folder when explicitly dropped onto one;
+        // dropping on empty space never removes a note from its folder
         if (dropTargetId) {
           onNoteFolder(d.id, dropTargetId)
-        } else if (note?.folder) {
-          onNoteFolder(d.id, null)
         }
         onNoteMove(d.id, { x: d.liveX, y: d.liveY })
       } else if (d.kind === 'folder') {
@@ -331,10 +330,13 @@ export default function NoteCanvas({
   const resetViewport = useCallback(() => { setPanX(80); setPanY(80); setZoom(1) }, [])
 
   // ── Filter notes ──────────────────────────────────────────────────────────
+  // Folder notes are hidden unless their folder is expanded (fan-out)
   const q = search.toLowerCase().trim()
-  const visibleNotes = q
-    ? notes.filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
-    : notes
+  const visibleNotes = notes.filter(n => {
+    if (n.folder) return expandedFolders.has(n.folder)  // only show when expanded
+    if (q) return n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q)
+    return true
+  })
 
   // ── Ephemeral fan positions ───────────────────────────────────────────────
   const noteDisplayPos  = {}
