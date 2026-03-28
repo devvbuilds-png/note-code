@@ -135,7 +135,7 @@ function preRenderNode(node) {
 // ── Section component ────────────────────────────────────────────────────────
 function Section({ node, rendered, onCheckboxToggle }) {
   const [collapsed, setCollapsed] = useState(false)
-  const hasChildren = node.children.length > 0
+  const isCollapsible = node.children.length > 0 || !!rendered.html.trim()
   const HeadingTag = `h${node.level}`
 
   // Render inline markdown in heading text (bold, italic, code, etc.)
@@ -153,10 +153,10 @@ function Section({ node, rendered, onCheckboxToggle }) {
   return (
     <div className={`outline-node outline-level-${node.level}`}>
       <div
-        className={`outline-heading-row${hasChildren ? ' has-children' : ''}`}
-        onClick={hasChildren ? () => setCollapsed(c => !c) : undefined}
+        className={`outline-heading-row${isCollapsible ? ' has-children' : ''}`}
+        onClick={isCollapsible ? () => setCollapsed(c => !c) : undefined}
       >
-        <span className={`collapse-chevron${hasChildren ? '' : ' invisible'}${collapsed ? ' is-collapsed' : ''}`}>
+        <span className={`collapse-chevron${isCollapsible ? '' : ' invisible'}${collapsed ? ' is-collapsed' : ''}`}>
           ▾
         </span>
         <HeadingTag
@@ -174,7 +174,7 @@ function Section({ node, rendered, onCheckboxToggle }) {
               onClick={handleContentClick}
             />
           )}
-          {hasChildren && (
+          {node.children.length > 0 && (
             <div className="outline-children">
               {node.children.map((child, i) => (
                 <Section

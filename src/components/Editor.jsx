@@ -1,10 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { FONT_OPTIONS, FONT_SIZE_MIN, FONT_SIZE_MAX } from '../constants'
-import { EditorView, keymap } from '@codemirror/view'
-import { EditorState } from '@codemirror/state'
+import { EditorView, keymap, ViewPlugin, Decoration, WidgetType } from '@codemirror/view'
+import { EditorState, RangeSetBuilder } from '@codemirror/state'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
-import { syntaxHighlighting, HighlightStyle } from '@codemirror/language'
+import { syntaxHighlighting, HighlightStyle, codeFolding, foldEffect, unfoldEffect, foldedRanges } from '@codemirror/language'
 import { languages } from '@codemirror/language-data'
 import { tags } from '@lezer/highlight'
 
@@ -205,6 +205,119 @@ function insertAlign(view, align) {
   view.focus()
 }
 
+// ── Heading fold + indent plugin ─────────────────────────────────────────────
+
+// Returns the foldable range for the heading that starts at lineFrom.
+// Folds everything from end-of-heading-line to end-of-last-line-before-next-same-or-higher-heading.
+function getHeadingFoldRange(state, lineFrom) {
+  const line = state.doc.lineAt(lineFrom)
+  const match = line.text.match(/^(#{1,6})\s/)
+  if (!match) return null
+
+  const level = match[1].length
+  let endPos = line.to
+
+  for (let ln = line.number + 1; ln <= state.doc.lines; ln++) {
+    const next = state.doc.line(ln)
+    const nm = next.text.match(/^(#{1,6})\s/)
+    if (nm && nm[1].length <= level) break
+    endPos = next.to
+  }
+
+  return endPos > line.to ? { from: line.to, to: endPos } : null
+}
+
+class HeadingChevron extends WidgetType {
+  constructor(lineFrom, folded) {
+    super()
+    this.lineFrom = lineFrom
+    this.folded = folded
+  }
+  toDOM() {
+    const el = document.createElement('span')
+    el.className = `cm-heading-chevron${this.folded ? ' is-folded' : ''}`
+    el.dataset.lineFrom = String(this.lineFrom)
+    el.textContent = this.folded ? ' ▸' : ' ▾'
+    return el
+  }
+  eq(o) { return this.lineFrom === o.lineFrom && this.folded === o.folded }
+  ignoreEvent() { return false }
+}
+
+const headingPlugin = ViewPlugin.fromClass(
+  class {
+    constructor(view) {
+      this.decorations = this._build(view)
+    }
+    update(u) {
+      if (u.docChanged || u.viewportChanged ||
+          u.transactions.some(t => t.effects.some(e => e.is(foldEffect) || e.is(unfoldEffect)))) {
+        this.decorations = this._build(u.view)
+      }
+    }
+    _build(view) {
+      const builder = new RangeSetBuilder()
+      const state = view.state
+      const folded = foldedRanges(state)
+
+      for (const { from, to } of view.visibleRanges) {
+        let pos = from
+        while (pos <= to) {
+          const line = state.doc.lineAt(pos)
+          const match = line.text.match(/^(#{1,6})\s/)
+
+          if (match) {
+            const level = match[1].length
+            const indent = (level - 1) * 18 // H1→0px, H2→18px, H3→36px …
+
+            // Indent the line
+            if (indent > 0) {
+              builder.add(line.from, line.from, Decoration.line({
+                attributes: { style: `padding-left:${indent}px` },
+              }))
+            }
+
+            // Chevron widget at end of heading text
+            const foldRange = getHeadingFoldRange(state, line.from)
+            if (foldRange) {
+              let isFolded = false
+              folded.between(foldRange.from, foldRange.from + 1, () => { isFolded = true })
+              builder.add(line.to, line.to, Decoration.widget({
+                widget: new HeadingChevron(line.from, isFolded),
+                side: 1,
+              }))
+            }
+          }
+
+          pos = line.to + 1
+        }
+      }
+      return builder.finish()
+    }
+  },
+  {
+    decorations: v => v.decorations,
+    eventHandlers: {
+      mousedown(e, view) {
+        const t = e.target
+        if (!t.classList.contains('cm-heading-chevron')) return false
+        const lineFrom = parseInt(t.dataset.lineFrom, 10)
+        if (isNaN(lineFrom)) return false
+
+        const line = view.state.doc.lineAt(lineFrom)
+        const fr = getHeadingFoldRange(view.state, line.from)
+        if (!fr) return false
+
+        let isFolded = false
+        foldedRanges(view.state).between(fr.from, fr.from + 1, () => { isFolded = true })
+        view.dispatch({ effects: isFolded ? unfoldEffect.of(fr) : foldEffect.of(fr) })
+        e.preventDefault()
+        return true
+      },
+    },
+  }
+)
+
 // ── Alignment icons ──────────────────────────────────────────────────────────
 const AlignLeftIcon = () => (
   <svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor" aria-hidden="true">
@@ -256,6 +369,8 @@ export default function Editor({
           history(),
           keymap.of([...defaultKeymap, ...historyKeymap]),
           EditorView.lineWrapping,
+          codeFolding(),
+          headingPlugin,
           EditorView.updateListener.of(update => {
             if (update.docChanged) {
               onChangeRef.current(update.state.doc.toString())

@@ -1074,6 +1074,20 @@ input, textarea {
   flex-shrink: 0;
 }
 
+/* ── Editor heading fold chevrons ───────────────── */
+.cm-heading-chevron {
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s, transform 0.18s;
+  display: inline-block;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.cm-heading-chevron:hover { color: var(--text-secondary); }
+.cm-heading-chevron.is-folded { color: var(--text-muted); }
+
 /* ── CodeMirror wrapper ──────────────────────────── */
 .cm-wrapper {
   flex: 1;
