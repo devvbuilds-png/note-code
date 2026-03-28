@@ -1076,17 +1076,27 @@ input, textarea {
 
 /* ── Editor heading fold chevrons ───────────────── */
 .cm-heading-chevron {
-  color: var(--text-muted);
-  font-size: 10px;
+  color: var(--accent-soft);
+  font-size: 12px;
   cursor: pointer;
   user-select: none;
-  transition: color 0.15s, transform 0.18s;
+  transition: color 0.15s, opacity 0.15s;
   display: inline-block;
-  margin-left: 6px;
+  margin-left: 8px;
   vertical-align: middle;
+  opacity: 0.7;
+  padding: 0 3px;
+  border-radius: 3px;
 }
-.cm-heading-chevron:hover { color: var(--text-secondary); }
-.cm-heading-chevron.is-folded { color: var(--text-muted); }
+.cm-heading-chevron:hover {
+  color: var(--accent-soft);
+  opacity: 1;
+  background: rgba(139,92,246,0.15);
+}
+.cm-heading-chevron.is-folded {
+  color: var(--text-secondary);
+  opacity: 0.9;
+}
 
 /* ── CodeMirror wrapper ──────────────────────────── */
 .cm-wrapper {
@@ -1316,14 +1326,24 @@ input, textarea {
 }
 
 .collapse-chevron {
-  font-size: 10px;
-  color: var(--text-muted);
-  transition: transform 0.18s ease, color 0.15s;
+  font-size: 12px;
+  color: var(--accent-soft);
+  opacity: 0.75;
+  transition: transform 0.18s ease, color 0.15s, opacity 0.15s;
   flex-shrink: 0;
-  width: 14px;
-  text-align: center;
-  line-height: 1;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
   user-select: none;
+  background: rgba(139,92,246,0.08);
+}
+
+.outline-heading-row.has-children:hover .collapse-chevron {
+  opacity: 1;
+  background: rgba(139,92,246,0.18);
 }
 
 .collapse-chevron.invisible {
@@ -1332,6 +1352,7 @@ input, textarea {
 
 .collapse-chevron.is-collapsed {
   transform: rotate(-90deg);
+  opacity: 0.9;
 }
 
 .outline-body {
@@ -1339,7 +1360,7 @@ input, textarea {
 }
 
 .outline-content {
-  padding: 2px 0 4px 20px;
+  padding: 2px 0 6px 0;
 }
 
 /* Children container: indent + vertical tree line */

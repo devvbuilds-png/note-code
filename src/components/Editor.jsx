@@ -258,33 +258,69 @@ const headingPlugin = ViewPlugin.fromClass(
     _build(view) {
       const builder = new RangeSetBuilder()
       const state = view.state
-      const folded = foldedRanges(state)
+      const foldState = foldedRanges(state)
+      const visibleEnd = view.visibleRanges.at(-1)?.to ?? 0
 
+      // 1. Find the minimum heading level present so indentation is relative.
+      //    e.g. if doc only has H2/H3, H2 becomes leftmost (0px).
+      let minLevel = 7
+      for (let ln = 1; ln <= state.doc.lines; ln++) {
+        const m = state.doc.line(ln).text.match(/^(#{1,6})\s/)
+        if (m) minLevel = Math.min(minLevel, m[1].length)
+        if (state.doc.line(ln).from > visibleEnd && minLevel < 7) break
+      }
+      if (minLevel === 7) minLevel = 1
+
+      // 2. Walk from doc start to build per-line context (heading level of parent).
+      //    Needed so content lines know their indent depth.
+      const lineCtx = new Map() // lineNumber → {isHeading, depth}
+      let curLevel = 0
+      for (let ln = 1; ln <= state.doc.lines; ln++) {
+        const line = state.doc.line(ln)
+        const m = line.text.match(/^(#{1,6})\s/)
+        if (m) {
+          curLevel = m[1].length
+          lineCtx.set(ln, { isHeading: true, depth: curLevel - minLevel })
+        } else {
+          lineCtx.set(ln, { isHeading: false, depth: curLevel > 0 ? curLevel - minLevel : -1 })
+        }
+        if (line.from > visibleEnd) break
+      }
+
+      // 3. Apply decorations to visible lines only.
       for (const { from, to } of view.visibleRanges) {
         let pos = from
         while (pos <= to) {
           const line = state.doc.lineAt(pos)
-          const match = line.text.match(/^(#{1,6})\s/)
+          const ctx = lineCtx.get(line.number) ?? { isHeading: false, depth: -1 }
+          const indent = Math.max(0, ctx.depth) * 18
 
-          if (match) {
-            const level = match[1].length
-            const indent = (level - 1) * 18 // H1→0px, H2→18px, H3→36px …
-
-            // Indent the line
+          if (ctx.isHeading) {
+            // Indent heading line
             if (indent > 0) {
               builder.add(line.from, line.from, Decoration.line({
                 attributes: { style: `padding-left:${indent}px` },
               }))
             }
-
-            // Chevron widget at end of heading text
-            const foldRange = getHeadingFoldRange(state, line.from)
-            if (foldRange) {
+            // Fold chevron
+            const fr = getHeadingFoldRange(state, line.from)
+            if (fr) {
               let isFolded = false
-              folded.between(foldRange.from, foldRange.from + 1, () => { isFolded = true })
+              foldState.between(fr.from, fr.from + 1, () => { isFolded = true })
               builder.add(line.to, line.to, Decoration.widget({
                 widget: new HeadingChevron(line.from, isFolded),
                 side: 1,
+              }))
+            }
+          } else if (ctx.depth >= 0) {
+            // Content line — indent to match parent heading + draw tree line
+            if (indent > 0) {
+              // Background gradient creates a 1px vertical line just before the indented content
+              const linePos = indent - 1
+              builder.add(line.from, line.from, Decoration.line({
+                attributes: {
+                  style: `padding-left:${indent}px;background:linear-gradient(to right,transparent ${linePos}px,rgba(139,92,246,0.22) ${linePos}px,rgba(139,92,246,0.22) ${indent}px,transparent ${indent}px)`,
+                },
               }))
             }
           }
