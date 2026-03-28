@@ -1064,6 +1064,7 @@ input, textarea {
 .toolbar-btn-bold  { font-weight: 700; }
 .toolbar-btn-italic { font-style: italic; }
 .toolbar-btn-code  { color: var(--text-orange); }
+.toolbar-btn-align { display: flex; align-items: center; justify-content: center; min-width: 28px; padding: 4px 7px; }
 
 .toolbar-sep {
   width: 1px;
@@ -1263,6 +1264,97 @@ input, textarea {
 }
 .markdown-body tr:nth-child(even) td {
   background: rgba(255,255,255,0.015);
+}
+
+/* ── Outline tree (heading hierarchy in reader) ──── */
+.outline-node {
+  position: relative;
+}
+
+/* Spacing between top-level sections */
+.preview-content > .outline-node {
+  margin-top: 1.4em;
+}
+.preview-content > .outline-node:first-child {
+  margin-top: 0.4em;
+}
+
+.outline-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.outline-heading-row.has-children {
+  cursor: pointer;
+}
+
+.outline-heading-row.has-children:hover .outline-heading {
+  color: var(--accent-soft);
+  transition: color 0.15s;
+}
+
+/* Override default h1-h6 margins inside outline — spacing handled by outline-node */
+.outline-heading {
+  margin: 0 !important;
+  flex: 1;
+}
+
+.collapse-chevron {
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.18s ease, color 0.15s;
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+  line-height: 1;
+  user-select: none;
+}
+
+.collapse-chevron.invisible {
+  visibility: hidden;
+}
+
+.collapse-chevron.is-collapsed {
+  transform: rotate(-90deg);
+}
+
+.outline-body {
+  margin-top: 4px;
+}
+
+.outline-content {
+  padding: 2px 0 4px 20px;
+}
+
+/* Children container: indent + vertical tree line */
+.outline-children {
+  margin-top: 6px;
+  margin-left: 6px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+/* Horizontal branch connector from tree line to each child heading */
+.outline-children > .outline-node > .outline-heading-row::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 1px;
+  background: rgba(139, 92, 246, 0.2);
+}
+
+/* Nested children get slightly dimmer lines */
+.outline-children .outline-children {
+  border-left-color: rgba(139, 92, 246, 0.12);
+}
+
+.outline-children .outline-children > .outline-node > .outline-heading-row::before {
+  background: rgba(139, 92, 246, 0.12);
 }
 
 /* Inline code */

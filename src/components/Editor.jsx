@@ -163,6 +163,73 @@ function insertBlock(view, type) {
   view.focus()
 }
 
+function insertAlign(view, align) {
+  const state = view.state
+  const changes = []
+
+  for (const range of state.selection.ranges) {
+    let from, to, text
+
+    if (range.empty) {
+      const line = state.doc.lineAt(range.from)
+      from = line.from
+      to = line.to
+      text = line.text
+    } else {
+      const fromLine = state.doc.lineAt(range.from)
+      const toLine = state.doc.lineAt(range.to)
+      from = fromLine.from
+      to = toLine.to
+      text = state.doc.sliceString(from, to)
+    }
+
+    // Check if already wrapped in an alignment div
+    const alignMatch = text.match(/^<div style="text-align:(left|center|right)">([\s\S]*?)<\/div>$/)
+
+    if (alignMatch) {
+      if (alignMatch[1] === align) {
+        // Toggle off — remove wrapper
+        changes.push({ from, to, insert: alignMatch[2] })
+      } else {
+        // Switch alignment
+        changes.push({ from, to, insert: `<div style="text-align:${align}">${alignMatch[2]}</div>` })
+      }
+    } else {
+      changes.push({ from, to, insert: `<div style="text-align:${align}">${text}</div>` })
+    }
+  }
+
+  if (changes.length) {
+    view.dispatch({ changes })
+  }
+  view.focus()
+}
+
+// ── Alignment icons ──────────────────────────────────────────────────────────
+const AlignLeftIcon = () => (
+  <svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor" aria-hidden="true">
+    <rect x="0" y="0" width="13" height="1.8" rx="0.9"/>
+    <rect x="0" y="4.6" width="8.5" height="1.8" rx="0.9"/>
+    <rect x="0" y="9.2" width="11" height="1.8" rx="0.9"/>
+  </svg>
+)
+
+const AlignCenterIcon = () => (
+  <svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor" aria-hidden="true">
+    <rect x="0" y="0" width="13" height="1.8" rx="0.9"/>
+    <rect x="2.25" y="4.6" width="8.5" height="1.8" rx="0.9"/>
+    <rect x="1" y="9.2" width="11" height="1.8" rx="0.9"/>
+  </svg>
+)
+
+const AlignRightIcon = () => (
+  <svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor" aria-hidden="true">
+    <rect x="0" y="0" width="13" height="1.8" rx="0.9"/>
+    <rect x="4.5" y="4.6" width="8.5" height="1.8" rx="0.9"/>
+    <rect x="2" y="9.2" width="11" height="1.8" rx="0.9"/>
+  </svg>
+)
+
 // ── Component ────────────────────────────────────────────────────────────────
 export default function Editor({
   note, onChange, onTitleChange,
@@ -248,6 +315,10 @@ export default function Editor({
         <button className="toolbar-btn" title="Blockquote" onClick={() => getView() && insertBlock(getView(), 'quote')}>&gt;</button>
         <span className="toolbar-sep" />
         <button className="toolbar-btn" title="Checkbox" onClick={() => getView() && insertCheckbox(getView())}>☐</button>
+        <span className="toolbar-sep" />
+        <button className="toolbar-btn toolbar-btn-align" title="Align left" onClick={() => getView() && insertAlign(getView(), 'left')}><AlignLeftIcon /></button>
+        <button className="toolbar-btn toolbar-btn-align" title="Align center" onClick={() => getView() && insertAlign(getView(), 'center')}><AlignCenterIcon /></button>
+        <button className="toolbar-btn toolbar-btn-align" title="Align right" onClick={() => getView() && insertAlign(getView(), 'right')}><AlignRightIcon /></button>
         <span className="toolbar-sep" />
         <div className="font-size-controls">
           <button

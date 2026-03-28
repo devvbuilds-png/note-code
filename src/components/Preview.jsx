@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { marked } from 'marked'
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -74,17 +74,137 @@ renderer.codespan = function({ text }) {
   return `<code class="inline-code">${text}</code>`
 }
 
-export default function Preview({ content, overlay, onClose, onCheckboxToggle }) {
-  const html = useMemo(() => {
-    if (!content.trim()) return ''
-    _cbIdx = 0
-    return marked(content, { renderer })
-  }, [content])
+// ── Section tree parsing ─────────────────────────────────────────────────────
+// Returns a root node: { level:0, headingText:null, contentLines:[], children:[] }
+function parseTree(markdown) {
+  const lines = markdown.split('\n')
+  const root = { level: 0, headingText: null, contentLines: [], children: [] }
+  const stack = [root]
+  let pendingContent = []
+  let inCodeBlock = false
+
+  for (const line of lines) {
+    // Track fenced code blocks so we don't treat # inside them as headings
+    if (/^```/.test(line)) {
+      inCodeBlock = !inCodeBlock
+      pendingContent.push(line)
+      continue
+    }
+
+    if (inCodeBlock) {
+      pendingContent.push(line)
+      continue
+    }
+
+    const match = line.match(/^(#{1,6})\s+(.+)$/)
+    if (match) {
+      // Flush pending content to the current stack top
+      stack[stack.length - 1].contentLines.push(...pendingContent)
+      pendingContent = []
+
+      const level = match[1].length
+      const node = { level, headingText: match[2], contentLines: [], children: [] }
+
+      // Pop until we find a node with lower level (a valid parent)
+      while (stack.length > 1 && stack[stack.length - 1].level >= level) {
+        stack.pop()
+      }
+
+      stack[stack.length - 1].children.push(node)
+      stack.push(node)
+    } else {
+      pendingContent.push(line)
+    }
+  }
+
+  // Flush any trailing content
+  stack[stack.length - 1].contentLines.push(...pendingContent)
+
+  return root
+}
+
+// Pre-render the content of each node to HTML (in document order so _cbIdx is correct)
+function preRenderNode(node) {
+  const text = node.contentLines.join('\n').trim()
+  return {
+    html: text ? marked(text, { renderer }) : '',
+    children: node.children.map(preRenderNode),
+  }
+}
+
+// ── Section component ────────────────────────────────────────────────────────
+function Section({ node, rendered, onCheckboxToggle }) {
+  const [collapsed, setCollapsed] = useState(false)
+  const hasChildren = node.children.length > 0
+  const HeadingTag = `h${node.level}`
+
+  // Render inline markdown in heading text (bold, italic, code, etc.)
+  const headingHtml = useMemo(
+    () => marked.parseInline(node.headingText),
+    [node.headingText]
+  )
 
   function handleContentClick(e) {
     if (e.target.classList.contains('task-checkbox') && onCheckboxToggle) {
-      const idx = parseInt(e.target.dataset.idx, 10)
-      onCheckboxToggle(idx)
+      onCheckboxToggle(parseInt(e.target.dataset.idx, 10))
+    }
+  }
+
+  return (
+    <div className={`outline-node outline-level-${node.level}`}>
+      <div
+        className={`outline-heading-row${hasChildren ? ' has-children' : ''}`}
+        onClick={hasChildren ? () => setCollapsed(c => !c) : undefined}
+      >
+        <span className={`collapse-chevron${hasChildren ? '' : ' invisible'}${collapsed ? ' is-collapsed' : ''}`}>
+          ▾
+        </span>
+        <HeadingTag
+          className="outline-heading"
+          dangerouslySetInnerHTML={{ __html: headingHtml }}
+        />
+      </div>
+
+      {!collapsed && (
+        <div className="outline-body">
+          {rendered.html && (
+            <div
+              className="outline-content"
+              dangerouslySetInnerHTML={{ __html: rendered.html }}
+              onClick={handleContentClick}
+            />
+          )}
+          {hasChildren && (
+            <div className="outline-children">
+              {node.children.map((child, i) => (
+                <Section
+                  key={i}
+                  node={child}
+                  rendered={rendered.children[i]}
+                  onCheckboxToggle={onCheckboxToggle}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Preview component ────────────────────────────────────────────────────────
+export default function Preview({ content, overlay, onClose, onCheckboxToggle }) {
+  const parsed = useMemo(() => {
+    if (!content.trim()) return null
+    _cbIdx = 0
+    const tree = parseTree(content)
+    const rendered = preRenderNode(tree)
+    return { tree, rendered }
+  }, [content])
+
+  function handleRootClick(e) {
+    if (e.target.classList.contains('task-checkbox') && onCheckboxToggle) {
+      onCheckboxToggle(parseInt(e.target.dataset.idx, 10))
     }
   }
 
@@ -98,11 +218,32 @@ export default function Preview({ content, overlay, onClose, onCheckboxToggle })
         )}
         <span className="editor-label">reader</span>
       </div>
-      <div
-        className="preview-content markdown-body"
-        onClick={handleContentClick}
-        dangerouslySetInnerHTML={{ __html: html || '<p class="preview-empty">Nothing to preview yet.</p>' }}
-      />
+
+      {!parsed ? (
+        <div className="preview-content markdown-body">
+          <p className="preview-empty">Nothing to preview yet.</p>
+        </div>
+      ) : (
+        <div className="preview-content markdown-body">
+          {/* Pre-heading content (content before the first heading) */}
+          {parsed.rendered.html && (
+            <div
+              className="outline-content"
+              dangerouslySetInnerHTML={{ __html: parsed.rendered.html }}
+              onClick={handleRootClick}
+            />
+          )}
+          {/* Heading sections */}
+          {parsed.tree.children.map((child, i) => (
+            <Section
+              key={i}
+              node={child}
+              rendered={parsed.rendered.children[i]}
+              onCheckboxToggle={onCheckboxToggle}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
