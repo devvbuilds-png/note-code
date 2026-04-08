@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import JSZip from 'jszip'
 
 // ── Viewport persistence ──────────────────────────────────────────────────────
 const CANVAS_VP_KEY = 'notecode_canvas'
@@ -443,13 +444,31 @@ export default function NoteCanvas({
 
   const resetViewport = useCallback(() => { setPanX(80); setPanY(80); setZoom(1) }, [])
 
-  const handleExport = useCallback(() => {
-    const data = { notes, folders, exportedAt: new Date().toISOString() }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const handleExport = useCallback(async () => {
+    const zip = new JSZip()
+    const folderMap = {}
+    for (const f of folders) folderMap[f.id] = f.name
+
+    const usedNames = {}
+    function safeName(title, folder) {
+      const base = (title || 'Untitled').replace(/[<>:"/\\|?*]/g, '_').trim() || 'Untitled'
+      const key = (folder || '') + '/' + base
+      usedNames[key] = (usedNames[key] || 0) + 1
+      return usedNames[key] > 1 ? `${base} (${usedNames[key] - 1})` : base
+    }
+
+    for (const note of notes) {
+      const folderName = note.folder && folderMap[note.folder]
+      const fileName = safeName(note.title, note.folder) + '.md'
+      const path = folderName ? `${folderName}/${fileName}` : fileName
+      zip.file(path, note.content || '')
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `notecode-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `notecode-backup-${new Date().toISOString().slice(0, 10)}.zip`
     a.click()
     URL.revokeObjectURL(url)
   }, [notes, folders])
