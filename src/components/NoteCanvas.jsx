@@ -443,6 +443,17 @@ export default function NoteCanvas({
 
   const resetViewport = useCallback(() => { setPanX(80); setPanY(80); setZoom(1) }, [])
 
+  const handleExport = useCallback(() => {
+    const data = { notes, folders, exportedAt: new Date().toISOString() }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `notecode-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [notes, folders])
+
   // ── Filter notes ──────────────────────────────────────────────────────────
   // Folder notes are hidden unless their folder is expanded (fan-out)
   const q = search.toLowerCase().trim()
@@ -622,6 +633,7 @@ export default function NoteCanvas({
         >
           {trash.length > 0 ? `trash (${trash.length})` : 'trash'}
         </button>
+        <button className="canvas-tb-btn" onClick={handleExport} title="Download all notes as JSON">↓ export</button>
         <button className="canvas-tb-btn canvas-tb-reset" onClick={resetViewport} title="Reset zoom">⌖</button>
       </div>
 
